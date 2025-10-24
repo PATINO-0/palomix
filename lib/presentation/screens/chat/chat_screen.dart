@@ -9,7 +9,7 @@ import '../../bloc/movie/movie_event.dart';
 import '../../bloc/movie/movie_state.dart';
 import '../../widgets/movie_card.dart';
 import '../../widgets/chat_message_bubble.dart';
-import '../../widgets/movie_action_buttons.dart';
+import '../../widgets/custom_button.dart';
 import 'package:uuid/uuid.dart';
 
 // Pantalla principal de chat con IA
