@@ -1,8 +1,8 @@
 // API Keys y URLs - IMPORTANTE: Usar variables de entorno en producción
 class ApiConstants {
   // Supabase Configuration
-  static const String supabaseUrl = 'YOUR_SUPABASE_URL';
-  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  static const String supabaseUrl = 'https://sprnzwygfmfeucnloxey.supabase.co';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcm56d3lnZm1mZXVjbmxveGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNjg4MDEsImV4cCI6MjA3Njg0NDgwMX0.Pym7s4wev8zUSkQLSXyxzcS2SRwBWM-Vj0x6F1HTiA4';
   
   // OpenAI Configuration
   static const String openAiApiKey = 'YOUR_OPENAI_API_KEY';
