@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:flutter/foundation.dart' show kIsWeb; // added for web guard
+import 'package:flutter/foundation.dart' show kIsWeb; 
 import '../constants/api_constants.dart';
 
 class TmdbConfig {
@@ -16,7 +16,6 @@ class TmdbConfig {
     _apiKey = ApiConstants.tmdbApiKey;
     _bearerToken = ApiConstants.tmdbBearerToken;
 
-    // 2) Variables de entorno (solo desktop; evitar en web)
     final bool isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
     if (isDesktop) {
       if (_apiKey.isEmpty) {
@@ -27,7 +26,7 @@ class TmdbConfig {
       }
     }
 
-    // 3) Archivo opcional de assets (si existe)
+
     try {
       final jsonStr = await rootBundle.loadString('assets/config/tmdb.json');
       final data = json.decode(jsonStr) as Map<String, dynamic>;
