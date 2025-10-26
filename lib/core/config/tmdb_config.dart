@@ -11,10 +11,6 @@ class TmdbConfig {
   static String get apiKey => _apiKey;
   static String get bearerToken => _bearerToken;
 
-  // Carga configuración desde múltiples fuentes:
-  // 1) --dart-define (ApiConstants)
-  // 2) Variables de entorno (Windows desktop)
-  // 3) Archivo opcional assets/config/tmdb.json
   static Future<void> load() async {
     // 1) --dart-define
     _apiKey = ApiConstants.tmdbApiKey;
