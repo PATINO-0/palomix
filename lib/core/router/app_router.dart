@@ -6,7 +6,7 @@ import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/home/home_screen.dart';
 
-// Configuración de rutas con GoRouter
+
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/',
