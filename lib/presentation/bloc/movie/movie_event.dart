@@ -8,7 +8,6 @@ abstract class MovieEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-// Buscar películas
 class MovieSearchRequested extends MovieEvent {
   final String query;
   
@@ -28,7 +27,7 @@ class MovieDetailsRequested extends MovieEvent {
   List<Object?> get props => [movieId];
 }
 
-// Obtener recomendaciones personalizadas
+// Obtener recomendaciones personalizadas peliculas
 class PersonalizedRecommendationsRequested extends MovieEvent {}
 
 // Agregar a favoritos
