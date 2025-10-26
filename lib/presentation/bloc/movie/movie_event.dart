@@ -77,7 +77,6 @@ class MoviesByGenreRequested extends MovieEvent {
   List<Object?> get props => [genreId, genreName];
 }
 
-// Cargar más películas por género (paginación)
 class MoviesByGenreLoadMore extends MovieEvent {
   final int genreId;
   final String genreName;
