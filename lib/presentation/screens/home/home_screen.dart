@@ -7,6 +7,12 @@ import '../../bloc/auth/auth_event.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../chat/chat_screen.dart';
 import '../favorites/favorites_screen.dart';
+import '../explore/explore_screen.dart';
+import '../search/search_screen.dart';
+import '../top/top_screen.dart';
+import '../../bloc/favorites/favorites_cubit.dart';
+import '../recommendations/recommendations_screen.dart';
+import '../genres/genres_screen.dart';
 
 // Pantalla principal con navegación
 class HomeScreen extends StatefulWidget {
@@ -23,13 +29,30 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     const ChatScreen(),
     const FavoritesScreen(),
+    const ExploreScreen(),
+    const SearchScreen(),
+    const TopScreen(),
+    const RecommendationsScreen(),
+    const GenresScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
-        title: _selectedIndex == 0 ? 'Chat' : 'Favoritos',
+        title: _selectedIndex == 0
+            ? 'Chat'
+            : _selectedIndex == 1
+                ? 'Favoritos'
+                : _selectedIndex == 2
+                    ? 'Explorar'
+                    : _selectedIndex == 3
+                        ? 'Buscar'
+                        : _selectedIndex == 4
+                            ? 'Tendencias'
+                            : _selectedIndex == 5
+                                ? 'Recomendaciones'
+                                : 'Géneros',
         actions: [
           // Botón de cerrar sesión
           IconButton(
@@ -49,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
           color: AppColors.secondaryBlack,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryRed.withOpacity(0.1),
+              color: AppColors.primaryRed.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -61,6 +84,10 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {
               _selectedIndex = index;
             });
+            // Si entra a la pestaña Favoritos, recargar lista
+            if (index == 1) {
+              context.read<FavoritesCubit>().loadFavorites();
+            }
           },
           backgroundColor: Colors.transparent,
           selectedItemColor: AppColors.primaryRed,
@@ -77,6 +104,31 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.favorite_outline),
               activeIcon: Icon(Icons.favorite),
               label: 'Favoritos',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.explore_outlined),
+              activeIcon: Icon(Icons.explore),
+              label: 'Explorar',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              activeIcon: Icon(Icons.search),
+              label: 'Buscar',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.trending_up),
+              activeIcon: Icon(Icons.trending_up),
+              label: 'Tendencias',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.lightbulb_outline),
+              activeIcon: Icon(Icons.lightbulb),
+              label: 'Recomendaciones',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.category_outlined),
+              activeIcon: Icon(Icons.category),
+              label: 'Géneros',
             ),
           ],
         ),

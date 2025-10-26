@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../data/models/movie_model.dart';
 import '../bloc/movie/movie_bloc.dart';
 import '../bloc/movie/movie_event.dart';
+import 'app_network_image.dart';
 
 // Tarjeta de película
 class MovieCard extends StatelessWidget {
@@ -26,7 +27,7 @@ class MovieCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryRed.withOpacity(0.1),
+              color: AppColors.primaryRed.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -37,15 +38,12 @@ class MovieCard extends StatelessWidget {
           children: [
             // Poster
             if (movie.fullPosterUrl != null)
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-                child: Image.network(
-                  movie.fullPosterUrl!,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+              AppNetworkImage(
+                imageUrl: movie.fullPosterUrl,
+                height: 200,
+                width: double.infinity,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                fit: BoxFit.cover,
               ),
 
             Padding(

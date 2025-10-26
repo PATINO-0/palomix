@@ -26,7 +26,7 @@ class FavoriteModel extends Equatable {
       movieId: json['movie_id'] ?? 0,
       movieTitle: json['movie_title'] ?? '',
       posterPath: json['poster_path'],
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
   

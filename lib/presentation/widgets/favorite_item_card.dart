@@ -26,7 +26,7 @@ class FavoriteItemCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryRed.withOpacity(0.1),
+              color: AppColors.primaryRed.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -91,7 +91,7 @@ class FavoriteItemCard extends StatelessWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 6,
                           ),
                         ],

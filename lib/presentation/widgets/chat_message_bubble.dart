@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/chat_message_model.dart';
 import 'movie_card.dart';
+import 'app_network_image.dart';
 
 // Burbuja de mensaje en el chat
 class ChatMessageBubble extends StatelessWidget {
@@ -82,24 +83,12 @@ class ChatMessageBubble extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ClipRRect(
+                          AppNetworkImage(
+                            imageUrl: movie.fullPosterUrl,
+                            width: 130,
+                            height: 160,
                             borderRadius: BorderRadius.circular(8),
-                            child: movie.fullPosterUrl != null
-                                ? Image.network(
-                                    movie.fullPosterUrl!,
-                                    height: 160,
-                                    width: 130,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Container(
-                                    height: 160,
-                                    color: AppColors.tertiaryBlack,
-                                    child: Icon(
-                                      Icons.movie,
-                                      color: AppColors.grayWhite,
-                                      size: 40,
-                                    ),
-                                  ),
+                            fit: BoxFit.cover,
                           ),
                           const SizedBox(height: 4),
                           Text(

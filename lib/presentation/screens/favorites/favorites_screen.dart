@@ -6,7 +6,9 @@ import '../../../data/models/favorite_model.dart';
 import '../../bloc/movie/movie_bloc.dart';
 import '../../bloc/movie/movie_event.dart';
 import '../../bloc/movie/movie_state.dart';
+import '../../bloc/favorites/favorites_cubit.dart';
 import '../../widgets/favorite_item_card.dart';
+import '../../widgets/app_network_image.dart';
 
 // Pantalla de películas favoritas
 class FavoritesScreen extends StatefulWidget {
@@ -24,7 +26,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _loadFavorites() {
-    context.read<MovieBloc>().add(LoadFavoritesRequested());
+    context.read<FavoritesCubit>().loadFavorites();
   }
 
   // Mostrar detalles de película favorita
@@ -58,10 +60,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              context.read<MovieBloc>().add(
-                    RemoveFromFavoritesRequested(movieId),
-                  );
-              _loadFavorites();
+              context.read<FavoritesCubit>().removeFavorite(movieId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Eliminado de favoritos'),
+                  backgroundColor: AppColors.primaryRed,
+                ),
+              );
             },
             child: Text(
               'Eliminar',
@@ -127,13 +132,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
               // Poster y título
               if (movie.fullPosterUrl != null)
-                ClipRRect(
+                AppNetworkImage(
+                  imageUrl: movie.fullPosterUrl,
+                  width: double.infinity,
+                  height: 300,
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    movie.fullPosterUrl!,
-                    height: 300,
-                    fit: BoxFit.cover,
-                  ),
+                  fit: BoxFit.contain,
                 ).animate().fadeIn().scale(),
 
               const SizedBox(height: 16),
@@ -301,23 +305,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ClipRRect(
+                              AppNetworkImage(
+                                imageUrl: similar.fullPosterUrl,
+                                width: 120,
+                                height: 140,
                                 borderRadius: BorderRadius.circular(8),
-                                child: similar.fullPosterUrl != null
-                                    ? Image.network(
-                                        similar.fullPosterUrl!,
-                                        height: 140,
-                                        width: 120,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        height: 140,
-                                        color: AppColors.tertiaryBlack,
-                                        child: Icon(
-                                          Icons.movie,
-                                          color: AppColors.grayWhite,
-                                        ),
-                                      ),
+                                fit: BoxFit.cover,
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -368,19 +361,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       decoration: const BoxDecoration(
         gradient: AppColors.primaryGradient,
       ),
-      child: BlocConsumer<MovieBloc, MovieState>(
+      child: BlocConsumer<FavoritesCubit, FavoritesState>(
         listener: (context, state) {
-          if (state is RemovedFromFavoritesSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Eliminado de favoritos'),
-                backgroundColor: AppColors.primaryRed,
-              ),
-            );
-          }
+          // Sin acciones específicas aquí; mostramos snackbars al eliminar
         },
         builder: (context, state) {
-          if (state is MovieLoading) {
+          if (state is FavoritesLoading) {
             return Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(
@@ -390,13 +376,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             );
           }
 
-          if (state is FavoritesLoadedSuccess) {
+          if (state is FavoritesLoaded) {
             if (state.favorites.isEmpty) {
               return _buildEmptyState();
             }
 
             return RefreshIndicator(
-              onRefresh: () async => _loadFavorites(),
+              onRefresh: () async => context.read<FavoritesCubit>().loadFavorites(),
               color: AppColors.primaryRed,
               backgroundColor: AppColors.secondaryBlack,
               child: GridView.builder(

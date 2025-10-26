@@ -40,7 +40,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           gradient: AppColors.primaryGradient,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryRed.withOpacity(0.1),
+              color: AppColors.primaryRed.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),

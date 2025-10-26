@@ -59,3 +59,37 @@ class RemoveFromFavoritesRequested extends MovieEvent {
 
 // Cargar favoritos
 class LoadFavoritesRequested extends MovieEvent {}
+
+// Cargar películas trending/tendencias
+class TrendingMoviesRequested extends MovieEvent {}
+
+// Cargar películas mejor valoradas
+class TopRatedMoviesRequested extends MovieEvent {}
+
+// Cargar películas por género
+class MoviesByGenreRequested extends MovieEvent {
+  final int genreId;
+  final String genreName;
+  const MoviesByGenreRequested({
+    required this.genreId,
+    required this.genreName,
+  });
+  @override
+  List<Object?> get props => [genreId, genreName];
+}
+
+// Cargar más películas por género (paginación)
+class MoviesByGenreLoadMore extends MovieEvent {
+  final int genreId;
+  final String genreName;
+  final int nextPage;
+  const MoviesByGenreLoadMore({
+    required this.genreId,
+    required this.genreName,
+    required this.nextPage,
+  });
+  @override
+  List<Object?> get props => [genreId, genreName, nextPage];
+}
+// Cargar contenido completo de explorar
+class ExploreContentRequested extends MovieEvent {}

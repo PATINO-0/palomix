@@ -212,7 +212,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: AppColors.secondaryBlack,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryRed.withOpacity(0.1),
+            color: AppColors.primaryRed.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -253,7 +253,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryRed.withOpacity(0.3),
+                      color: AppColors.primaryRed.withValues(alpha: 0.3),
                       blurRadius: 10,
                       spreadRadius: 2,
                     ),

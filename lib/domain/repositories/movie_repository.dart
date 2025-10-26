@@ -80,4 +80,31 @@ class MovieRepository {
       rethrow;
     }
   }
+
+  // Obtener películas trending/tendencias
+  Future<List<MovieModel>> getTrendingMovies() async {
+    try {
+      return await _tmdbService.getTrendingMovies();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Obtener películas mejor valoradas
+  Future<List<MovieModel>> getTopRatedMovies() async {
+    try {
+      return await _tmdbService.getTopRatedMovies();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Obtener películas por género
+  Future<List<MovieModel>> getMoviesByGenre(int genreId, {int page = 1}) async {
+    try {
+      return await _tmdbService.getMoviesByGenre(genreId, page: page);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

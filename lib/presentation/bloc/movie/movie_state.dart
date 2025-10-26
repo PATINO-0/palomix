@@ -74,6 +74,74 @@ class AddedToFavoritesSuccess extends MovieState {}
 // Película eliminada de favoritos
 class RemovedFromFavoritesSuccess extends MovieState {}
 
+// Películas trending cargadas
+class TrendingMoviesSuccess extends MovieState {
+  final List<MovieModel> movies;
+  
+  const TrendingMoviesSuccess(this.movies);
+  
+  @override
+  List<Object?> get props => [movies];
+}
+
+// Películas mejor valoradas cargadas
+class TopRatedMoviesSuccess extends MovieState {
+  final List<MovieModel> movies;
+  
+  const TopRatedMoviesSuccess(this.movies);
+  
+  @override
+  List<Object?> get props => [movies];
+}
+
+// Películas por género cargadas
+class MoviesByGenreSuccess extends MovieState {
+  final List<MovieModel> movies;
+  final String genreName;
+  final int genreId;
+  final int currentPage;
+  final bool isLoadingMore;
+  final bool hasMore;
+
+  const MoviesByGenreSuccess({
+    required this.movies,
+    required this.genreName,
+    required this.genreId,
+    required this.currentPage,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+  });
+
+  @override
+  List<Object?> get props => [movies, genreName, genreId, currentPage, isLoadingMore, hasMore];
+}
+
+// Contenido completo de explorar cargado
+class ExploreContentSuccess extends MovieState {
+  final List<MovieModel> trendingMovies;
+  final List<MovieModel> topRatedMovies;
+  final List<MovieModel> personalizedMovies;
+  final String? aiRecommendations;
+  final Map<String, List<MovieModel>> genreMovies;
+  
+  const ExploreContentSuccess({
+    required this.trendingMovies,
+    required this.topRatedMovies,
+    required this.personalizedMovies,
+    this.aiRecommendations,
+    required this.genreMovies,
+  });
+  
+  @override
+  List<Object?> get props => [
+    trendingMovies,
+    topRatedMovies,
+    personalizedMovies,
+    aiRecommendations,
+    genreMovies,
+  ];
+}
+
 // Error
 class MovieError extends MovieState {
   final String message;

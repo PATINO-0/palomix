@@ -39,7 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
             AuthSignUpRequested(
-              email: _emailController.text.trim(),
+              email: _emailController.text.trim().toLowerCase(),
               password: _passwordController.text,
               fullName: _nameController.text.trim(),
             ),
@@ -131,7 +131,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Por favor ingresa tu correo';
                             }
-                            if (!value.contains('@')) {
+                            final email = value.trim();
+                            final emailRegex = RegExp(r'^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$');
+                            if (!emailRegex.hasMatch(email)) {
                               return 'Correo inválido';
                             }
                             return null;
