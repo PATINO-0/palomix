@@ -1,3 +1,4 @@
+//Recomendaciones
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/movie/movie_bloc.dart';
@@ -76,7 +77,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.error_outline, color: AppColors.primaryRed, size: 48),
+                    Icon(Icons.error_outline,
+                        color: AppColors.primaryRed, size: 48),
                     const SizedBox(height: 12),
                     Text(
                       state.message,
@@ -85,7 +87,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton(
-                      onPressed: () => context.read<MovieBloc>().add(PersonalizedRecommendationsRequested()),
+                      onPressed: () => context
+                          .read<MovieBloc>()
+                          .add(PersonalizedRecommendationsRequested()),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: AppColors.primaryRed),
                         foregroundColor: AppColors.pureWhite,
@@ -123,11 +127,15 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                             decoration: BoxDecoration(
                               color: AppColors.secondaryBlack,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.primaryRed, width: 1),
+                              border: Border.all(
+                                  color: AppColors.primaryRed, width: 1),
                             ),
                             child: Text(
                               _cachedAiText,
-                              style: TextStyle(color: AppColors.grayWhite, fontSize: 14, height: 1.5),
+                              style: TextStyle(
+                                  color: AppColors.grayWhite,
+                                  fontSize: 14,
+                                  height: 1.5),
                             ),
                           ),
                         const SizedBox(height: 12),
@@ -147,7 +155,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       childAspectRatio: 0.68,
                       crossAxisSpacing: 12,
@@ -180,7 +189,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
-                  onPressed: () => context.read<MovieBloc>().add(PersonalizedRecommendationsRequested()),
+                  onPressed: () => context
+                      .read<MovieBloc>()
+                      .add(PersonalizedRecommendationsRequested()),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AppColors.primaryRed),
                     foregroundColor: AppColors.pureWhite,
