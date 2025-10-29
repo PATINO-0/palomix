@@ -121,7 +121,7 @@ Siempre mantén un tono entusiasta sobre el cine.'''
     
 Información disponible: $overview
 
-Por favor, crea un resumen de 2-3 oraciones que capture la esencia de la trama de manera entretenida.''';
+Por favor, crea un resumen de 20-30 oraciones que capture la esencia de la trama de manera entretenida.''';
     
     return await generateResponse(prompt);
   }

@@ -8,6 +8,7 @@ import '../../../data/models/movie_model.dart';
 import '../../bloc/movie/movie_bloc.dart';
 import '../../bloc/movie/movie_event.dart';
 import '../../bloc/movie/movie_state.dart';
+import '../../bloc/favorites/favorites_cubit.dart';
 import '../../widgets/chat_message_bubble.dart';
 import 'package:uuid/uuid.dart';
 
@@ -23,7 +24,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final ScrollController _recommendationsScrollController = ScrollController();
   final List<ChatMessageModel> _messages = [];
-  final Map<String, bool> _expandedRecommendations = {}; // Track expanded state
+  final Map<String, bool> _expandedRecommendations = {};
   final _uuid = const Uuid();
   MovieModel? _currentMovie;
   late AnimationController _fabAnimationController;
@@ -119,6 +120,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   void _showMovieDetails(int movieId) {
     context.read<MovieBloc>().add(MovieDetailsRequested(movieId));
+  }
+
+  // ⭐ MÉTODO CORREGIDO: Agregar a favoritos
+  void _addToFavorites(MovieModel movie) {
+    context.read<FavoritesCubit>().addToFavorites(
+      movieId: movie.id,
+      movieTitle: movie.title,
+      posterPath: movie.posterPath,
+    );
+    
+    _showSnackBar('${movie.title} agregado a favoritos ❤️', isError: false);
   }
 
   @override
@@ -416,7 +428,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         .slideY(begin: 0.3, end: 0);
   }
 
-  // 🎬 Card de película mejorada con ANIMACIONES ESPECTACULARES
   Widget _buildMovieCard(MovieModel movie, int index) {
     return GestureDetector(
       onTap: () => _showMovieDetails(movie.id),
@@ -474,7 +485,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   
-                  // Rating badge con animación
                   Positioned(
                     top: 8,
                     right: 8,
@@ -520,6 +530,54 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   ),
                   
                   Positioned(
+                    top: 8,
+                    left: 8,
+                    child: GestureDetector(
+                      onTap: () => _addToFavorites(movie),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withOpacity(0.7),
+                          border: Border.all(
+                            color: AppColors.primaryRed.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryRed.withOpacity(0.3),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Icon(
+                              Icons.favorite_rounded,
+                              color: AppColors.primaryRed,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                        .animate(delay: (250 + index * 50).ms)
+                        .fadeIn(duration: 400.ms)
+                        .scale(
+                          begin: const Offset(0, 0),
+                          curve: Curves.elasticOut,
+                        )
+                        .then()
+                        .shimmer(
+                          duration: 2000.ms,
+                          delay: (300 * index).ms,
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                  ),
+                  
+                  Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
@@ -544,7 +602,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   
-                  // Efecto de brillo al pasar
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
@@ -745,7 +802,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       
-                      // 🎯 BOTÓN PARA MOSTRAR RECOMENDACIONES
                       if (hasRecommendations && !isUser)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -825,7 +881,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 
-                // 🎬 PELÍCULAS EXPANDIBLES CON ANIMACIÓN ESPECTACULAR
                 if (hasRecommendations && isExpanded)
                   _buildExpandedMovieGrid(message.recommendations!),
               ],
@@ -861,7 +916,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         .slideY(begin: 0.2, end: 0, curve: Curves.easeOut);
   }
 
-  // 🎬 GRID DE PELÍCULAS EXPANDIDO CON CARDS MÁS GRANDES
   Widget _buildExpandedMovieGrid(List<MovieModel> movies) {
     return Container(
       margin: const EdgeInsets.only(top: 12),
@@ -879,7 +933,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         .slideY(begin: -0.2, end: 0, curve: Curves.easeOut);
   }
 
-  // 🎬 CARD DE PELÍCULA GRANDE CON ANIMACIONES ESPECTACULARES
   Widget _buildLargeMovieCard(MovieModel movie, int index) {
     return GestureDetector(
       onTap: () => _showMovieDetails(movie.id),
@@ -921,7 +974,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           ),
                   ),
                   
-                  // Gradiente overlay
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
@@ -936,7 +988,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   
-                  // Rating badge
                   Positioned(
                     top: 8,
                     right: 8,
@@ -978,7 +1029,53 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         ),
                   ),
                   
-                  // Play icon overlay
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: GestureDetector(
+                      onTap: () => _addToFavorites(movie),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withOpacity(0.8),
+                          border: Border.all(
+                            color: AppColors.primaryRed.withOpacity(0.6),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryRed.withOpacity(0.5),
+                              blurRadius: 15,
+                              spreadRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Icon(
+                              Icons.favorite_rounded,
+                              color: AppColors.primaryRed,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                        .animate(delay: (250 + index * 100).ms)
+                        .fadeIn(duration: 500.ms)
+                        .scale(
+                          begin: const Offset(0, 0),
+                          curve: Curves.elasticOut,
+                        )
+                        .then(delay: 200.ms)
+                        .shimmer(
+                          duration: 2000.ms,
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                  ),
+                  
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(12),
@@ -1004,7 +1101,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         curve: Curves.elasticOut,
                       ),
                   
-                  // Título
                   Positioned(
                     bottom: 0,
                     left: 0,

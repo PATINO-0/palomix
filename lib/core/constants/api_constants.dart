@@ -9,7 +9,7 @@ class ApiConstants {
   static const String openAiModel = 'gpt-4-turbo-preview';
   
   // Groq Configuration (Respaldo)
-  static const String groqApiKey = 'YOUR_GROQ_API_KEY';
+  static const String groqApiKey = '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';
   static const String groqModel = 'llama-3.3-70b-versatile';
   
   // TMDB Configuration (via --dart-define)

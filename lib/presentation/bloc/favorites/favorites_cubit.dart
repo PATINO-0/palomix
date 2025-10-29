@@ -33,6 +33,26 @@ class FavoritesCubit extends Cubit<FavoritesState> {
     }
   }
 
+  // ⭐ NUEVO: Método para agregar a favoritos
+  Future<void> addToFavorites({
+    required int movieId,
+    required String movieTitle,
+    String? posterPath,
+  }) async {
+    try {
+      await SupabaseService.addToFavorites(
+        movieId: movieId,
+        movieTitle: movieTitle,
+        posterPath: posterPath,
+      );
+      // Opcional: recargar favoritos después de agregar
+      // await loadFavorites();
+    } catch (e) {
+      emit(FavoritesError('Error al agregar a favoritos: ${e.toString()}'));
+      rethrow; // Para que el UI pueda manejar el error
+    }
+  }
+
   Future<void> removeFavorite(int movieId) async {
     try {
       await SupabaseService.removeFromFavorites(movieId);

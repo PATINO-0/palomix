@@ -18,7 +18,7 @@ class MovieLoading extends MovieState {}
 
 // Resultados de búsqueda
 class MovieSearchSuccess extends MovieState {
-  final List<MovieModel> movies;
+  final List<MovieModel> movies; 
   
   const MovieSearchSuccess(this.movies);
   
