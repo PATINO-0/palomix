@@ -17,7 +17,6 @@ Future<void> main() async {
     url: ApiConstants.supabaseUrl,
     anonKey: ApiConstants.supabaseAnonKey,
   );
-  // Log de configuración TMDB (sin exponer secretos)
   final hasApiKey = TmdbConfig.apiKey.isNotEmpty;
   final hasBearer = TmdbConfig.bearerToken.isNotEmpty;
   debugPrint('TMDB config -> api_key: $hasApiKey, bearer: $hasBearer');
@@ -59,6 +58,7 @@ class MyApp extends StatelessWidget {
         title: 'Palomix',
         theme: theme,
         routerConfig: AppRouter.router,
+        debugShowCheckedModeBanner: false, 
       ),
     );
   }
