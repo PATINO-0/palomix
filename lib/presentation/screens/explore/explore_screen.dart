@@ -133,27 +133,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   return SliverList(
                     delegate: SliverChildListDelegate([
                       const SizedBox(height: 16),
-                      
-                      // Sección de Trending
-                      if (state.trendingMovies.isNotEmpty) ...[
-                        _buildSectionHeader('🔥 Tendencias'),
-                        _buildHorizontalMovieList(state.trendingMovies),
-                        const SizedBox(height: 24),
-                      ],
 
-                      // Sección de Top Rated
-                      if (state.topRatedMovies.isNotEmpty) ...[
-                        _buildSectionHeader('⭐ Mejor Valoradas'),
-                        _buildHorizontalMovieList(state.topRatedMovies),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // Sección de Géneros
-                      _buildSectionHeader('🎭 Explorar por Género'),
-                      _buildGenreGrid(),
-                      const SizedBox(height: 24),
-
-                      // Sección de Recomendaciones Personalizadas
+                      // Sección de Recomendaciones Personalizadas (primero)
                       if (state.personalizedMovies.isNotEmpty) ...[
                         _buildSectionHeader('💡 Para Ti'),
                         if ((state.aiRecommendations?.isNotEmpty ?? false))
@@ -182,6 +163,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         _buildHorizontalMovieList(state.personalizedMovies),
                         const SizedBox(height: 24),
                       ],
+
+                      // Sección de Trending
+                      if (state.trendingMovies.isNotEmpty) ...[
+                        _buildSectionHeader('🔥 Tendencias'),
+                        _buildHorizontalMovieList(state.trendingMovies),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Sección de Top Rated
+                      if (state.topRatedMovies.isNotEmpty) ...[
+                        _buildSectionHeader('⭐ Mejor Valoradas'),
+                        _buildHorizontalMovieList(state.topRatedMovies),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Sección de Géneros
+                      _buildSectionHeader('🎭 Explorar por Género'),
+                      _buildGenreGrid(),
+                      const SizedBox(height: 24),
 
                       // Padding inferior
                       const SizedBox(height: 100),

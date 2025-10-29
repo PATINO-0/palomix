@@ -6,6 +6,7 @@ import '../../bloc/movie/movie_state.dart';
 import '../../widgets/movie_card.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../widgets/app_network_image.dart';
+import '../../../data/models/movie_model.dart';
 
 class RecommendationsScreen extends StatefulWidget {
   const RecommendationsScreen({Key? key}) : super(key: key);
@@ -15,6 +16,9 @@ class RecommendationsScreen extends StatefulWidget {
 }
 
 class _RecommendationsScreenState extends State<RecommendationsScreen> {
+  List<MovieModel> _cachedRecommendations = [];
+  String _cachedAiText = '';
+
   @override
   void initState() {
     super.initState();
@@ -47,116 +51,147 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<MovieBloc, MovieState>(
-      builder: (context, state) {
-        if (state is MovieLoading) {
-          return Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
-            ),
-          );
-        }
-
-        if (state is MovieError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, color: AppColors.primaryRed, size: 48),
-                  const SizedBox(height: 12),
-                  Text(
-                    state.message,
-                    style: TextStyle(color: AppColors.pureWhite),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
+    return BlocListener<MovieBloc, MovieState>(
+      listener: (context, state) {
         if (state is PersonalizedRecommendationsSuccess) {
-          return CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Recomendaciones para ti',
-                        style: TextStyle(
-                          color: AppColors.pureWhite,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (state.aiRecommendations.isNotEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondaryBlack,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.primaryRed, width: 1),
-                          ),
-                          child: Text(
-                            state.aiRecommendations,
-                            style: TextStyle(color: AppColors.grayWhite, fontSize: 14, height: 1.5),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Películas sugeridas',
-                        style: TextStyle(
-                          color: AppColors.pureWhite,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.68,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final movie = state.movies[index];
-                      return MovieCard(
-                        movie: movie,
-                        onTap: () => _showMovieDetails(movie.id),
-                      );
-                    },
-                    childCount: state.movies.length,
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(child: const SizedBox(height: 100)),
-            ],
-          );
+          _cachedRecommendations = state.movies;
+          _cachedAiText = state.aiRecommendations;
+          setState(() {});
         }
-
-        // Estado vacío por defecto
-        return Center(
-          child: Text(
-            'No hay recomendaciones disponibles',
-            style: TextStyle(color: AppColors.grayWhite),
-          ),
-        );
       },
+      child: BlocBuilder<MovieBloc, MovieState>(
+        builder: (context, state) {
+          if (state is MovieLoading && _cachedRecommendations.isEmpty) {
+            return Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+              ),
+            );
+          }
+
+          if (state is MovieError && _cachedRecommendations.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, color: AppColors.primaryRed, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      state.message,
+                      style: TextStyle(color: AppColors.pureWhite),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => context.read<MovieBloc>().add(PersonalizedRecommendationsRequested()),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.primaryRed),
+                        foregroundColor: AppColors.pureWhite,
+                      ),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (_cachedRecommendations.isNotEmpty) {
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Recomendaciones para ti',
+                          style: TextStyle(
+                            color: AppColors.pureWhite,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_cachedAiText.isNotEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondaryBlack,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.primaryRed, width: 1),
+                            ),
+                            child: Text(
+                              _cachedAiText,
+                              style: TextStyle(color: AppColors.grayWhite, fontSize: 14, height: 1.5),
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Películas sugeridas',
+                          style: TextStyle(
+                            color: AppColors.pureWhite,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.68,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final movie = _cachedRecommendations[index];
+                        return MovieCard(
+                          movie: movie,
+                          onTap: () => _showMovieDetails(movie.id),
+                        );
+                      },
+                      childCount: _cachedRecommendations.length,
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(child: const SizedBox(height: 100)),
+              ],
+            );
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'No hay recomendaciones disponibles',
+                  style: TextStyle(color: AppColors.grayWhite),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => context.read<MovieBloc>().add(PersonalizedRecommendationsRequested()),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.primaryRed),
+                    foregroundColor: AppColors.pureWhite,
+                  ),
+                  child: const Text('Obtener recomendaciones'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

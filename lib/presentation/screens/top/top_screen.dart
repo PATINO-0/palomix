@@ -365,6 +365,12 @@ class TopScreen extends StatefulWidget {
 }
 
 class _TopScreenState extends State<TopScreen> {
+  // Cache local de resultados para evitar depender del estado global único
+  List<MovieModel> _trendingCache = [];
+  List<MovieModel> _topRatedCache = [];
+  bool _isLoadingLocal = true;
+  String? _errorLocal;
+
   void _showMovieDetails(int movieId) {
     context.read<MovieBloc>().add(MovieDetailsRequested(movieId));
     _showDetailsBottomSheet();
@@ -391,73 +397,93 @@ class _TopScreenState extends State<TopScreen> {
   @override
   void initState() {
     super.initState();
-    // Cargar contenido necesario (tendencias y mejor valoradas)
-    context.read<MovieBloc>().add(ExploreContentRequested());
+    // Cargar tendencias y mejor valoradas de forma independiente
+    final bloc = context.read<MovieBloc>();
+    bloc.add(TrendingMoviesRequested());
+    bloc.add(TopRatedMoviesRequested());
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
-      ),
-      child: DefaultTabController(
-        length: 2,
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryBlack,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.3)),
-                ),
-                child: const TabBar(
-                  indicatorColor: Colors.white,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.grey,
-                  tabs: [
-                    Tab(text: '🔥 Tendencias'),
-                    Tab(text: '⭐ Mejor Valoradas'),
-                  ],
+    return BlocListener<MovieBloc, MovieState>(
+      listener: (context, state) {
+        if (state is ExploreContentSuccess) {
+          _trendingCache = state.trendingMovies;
+          _topRatedCache = state.topRatedMovies;
+          _errorLocal = null;
+          _isLoadingLocal = false;
+        } else if (state is TrendingMoviesSuccess) {
+          _trendingCache = state.movies;
+          _errorLocal = null;
+          _isLoadingLocal = false;
+        } else if (state is TopRatedMoviesSuccess) {
+          _topRatedCache = state.movies;
+          _errorLocal = null;
+          _isLoadingLocal = false;
+        } else if (state is MovieLoading) {
+          // Mostrar loader si todavía no tenemos datos cacheados
+          if (_trendingCache.isEmpty && _topRatedCache.isEmpty) {
+            _isLoadingLocal = true;
+          }
+        } else if (state is MovieError) {
+          _errorLocal = state.message;
+          _isLoadingLocal = false;
+        }
+        setState(() {});
+      },
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.primaryGradient,
+        ),
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryBlack,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.3)),
+                  ),
+                  child: const TabBar(
+                    indicatorColor: Colors.white,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.grey,
+                    tabs: [
+                      Tab(text: '🔥 Tendencias'),
+                      Tab(text: '⭐ Mejor Valoradas'),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: BlocBuilder<MovieBloc, MovieState>(
-                builder: (context, state) {
-                  if (state is MovieLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
-                      ),
-                    );
-                  }
-
-                  if (state is MovieError) {
-                    return _buildErrorState(state.message);
-                  }
-
-                  if (state is ExploreContentSuccess) {
-                    final trending = state.trendingMovies;
-                    final topRated = state.topRatedMovies;
-
+              const SizedBox(height: 12),
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    if (_errorLocal != null) {
+                      return _buildErrorState(_errorLocal!);
+                    }
+                    if (_isLoadingLocal && _trendingCache.isEmpty && _topRatedCache.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+                        ),
+                      );
+                    }
                     return TabBarView(
                       children: [
-                        _buildGrid(trending),
-                        _buildGrid(topRated),
+                        _buildGrid(_trendingCache),
+                        _buildGrid(_topRatedCache),
                       ],
                     );
-                  }
-
-                  return _buildEmptyState('Cargando contenido destacado...');
-                },
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
