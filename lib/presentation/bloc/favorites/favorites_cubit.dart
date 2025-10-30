@@ -2,7 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/favorite_model.dart';
 import '../../../data/services/supabase_service.dart';
 
-// Estados de Favoritos
 abstract class FavoritesState {}
 
 class FavoritesInitial extends FavoritesState {}
@@ -19,7 +18,7 @@ class FavoritesError extends FavoritesState {
   FavoritesError(this.message);
 }
 
-// Cubit para manejar Favoritos de forma aislada del MovieBloc
+
 class FavoritesCubit extends Cubit<FavoritesState> {
   FavoritesCubit() : super(FavoritesInitial());
 
@@ -33,7 +32,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
     }
   }
 
-  // ⭐ NUEVO: Método para agregar a favoritos
+  
   Future<void> addToFavorites({
     required int movieId,
     required String movieTitle,
@@ -45,11 +44,10 @@ class FavoritesCubit extends Cubit<FavoritesState> {
         movieTitle: movieTitle,
         posterPath: posterPath,
       );
-      // Opcional: recargar favoritos después de agregar
-      // await loadFavorites();
+      
     } catch (e) {
       emit(FavoritesError('Error al agregar a favoritos: ${e.toString()}'));
-      rethrow; // Para que el UI pueda manejar el error
+      rethrow; 
     }
   }
 

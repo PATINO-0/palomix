@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-// Eventos relacionados con películas
+
 abstract class MovieEvent extends Equatable {
   const MovieEvent();
   
@@ -17,7 +17,7 @@ class MovieSearchRequested extends MovieEvent {
   List<Object?> get props => [query];
 }
 
-// Obtener detalles de película
+
 class MovieDetailsRequested extends MovieEvent {
   final int movieId;
   
@@ -27,10 +27,10 @@ class MovieDetailsRequested extends MovieEvent {
   List<Object?> get props => [movieId];
 }
 
-// Obtener recomendaciones personalizadas peliculas
+
 class PersonalizedRecommendationsRequested extends MovieEvent {}
 
-// Agregar a favoritos
+
 class AddToFavoritesRequested extends MovieEvent {
   final int movieId;
   final String movieTitle;
@@ -46,7 +46,7 @@ class AddToFavoritesRequested extends MovieEvent {
   List<Object?> get props => [movieId, movieTitle, posterPath];
 }
 
-// Eliminar de favoritos
+
 class RemoveFromFavoritesRequested extends MovieEvent {
   final int movieId;
   
@@ -56,16 +56,16 @@ class RemoveFromFavoritesRequested extends MovieEvent {
   List<Object?> get props => [movieId];
 }
 
-// Cargar favoritos
+
 class LoadFavoritesRequested extends MovieEvent {}
 
-// Cargar películas trending/tendencias
+
 class TrendingMoviesRequested extends MovieEvent {}
 
-// Cargar películas mejor valoradas
+
 class TopRatedMoviesRequested extends MovieEvent {}
 
-// Cargar películas por género
+
 class MoviesByGenreRequested extends MovieEvent {
   final int genreId;
   final String genreName;
@@ -89,5 +89,5 @@ class MoviesByGenreLoadMore extends MovieEvent {
   @override
   List<Object?> get props => [genreId, genreName, nextPage];
 }
-// Cargar contenido completo de explorar
+
 class ExploreContentRequested extends MovieEvent {}

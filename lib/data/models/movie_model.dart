@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-// Modelo para películas obtenidas de TMDB
+
 class MovieModel extends Equatable {
   final int id;
   final String title;
@@ -36,7 +36,7 @@ class MovieModel extends Equatable {
     this.cast,
   });
   
-  // Conversión desde JSON de TMDB
+  
   factory MovieModel.fromJson(Map<String, dynamic> json) {
     return MovieModel(
       id: json['id'] ?? 0,
@@ -62,7 +62,7 @@ class MovieModel extends Equatable {
     );
   }
   
-  // Verificar si la película ya se estrenó
+  
   static bool _checkIfReleased(String? releaseDate) {
     if (releaseDate == null || releaseDate.isEmpty) return false;
     try {
@@ -73,13 +73,13 @@ class MovieModel extends Equatable {
     }
   }
   
-  // Obtener URL completa del poster
+  
   String? get fullPosterUrl {
     if (posterPath == null) return null;
     return 'https://image.tmdb.org/t/p/w500$posterPath';
   }
   
-  // Obtener URL completa del backdrop
+  
   String? get fullBackdropUrl {
     if (backdropPath == null) return null;
     return 'https://image.tmdb.org/t/p/original$backdropPath';
@@ -105,7 +105,7 @@ class MovieModel extends Equatable {
       ];
 }
 
-// Modelo para miembros del reparto
+
 class CastMember extends Equatable {
   final int id;
   final String name;

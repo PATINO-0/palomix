@@ -5,14 +5,12 @@ import '../models/favorite_model.dart';
 import '../models/playlist_model.dart';
 import 'package:uuid/uuid.dart';
 
-// Servicio para manejar todas las operaciones de Supabase
+
 class SupabaseService {
   static final SupabaseClient _client = Supabase.instance.client;
   static const _uuid = Uuid();
 
-  // ========== AUTENTICACIÓN ==========
-
-  // Registro de nuevo usuario
+ 
   static Future<AuthResponse> signUp({
     required String email,
     required String password,
@@ -26,7 +24,7 @@ class SupabaseService {
       );
       return response;
     } on AuthApiException catch (e) {
-      // Propaga el mensaje de Supabase de forma clara
+      
       throw Exception(e.message);
     } on AuthException catch (e) {
       throw Exception(e.message);
@@ -35,7 +33,7 @@ class SupabaseService {
     }
   }
 
-  // Inicio de sesión
+  
   static Future<AuthResponse> signIn({
     required String email,
     required String password,
@@ -51,7 +49,7 @@ class SupabaseService {
     }
   }
 
-  // Cerrar sesión
+  
   static Future<void> signOut() async {
     try {
       await _client.auth.signOut();
@@ -60,19 +58,17 @@ class SupabaseService {
     }
   }
 
-  // Obtener usuario actual
+  
   static User? getCurrentUser() {
     return _client.auth.currentUser;
   }
 
-  // Stream de cambios de autenticación
+  
   static Stream<AuthState> get authStateChanges {
     return _client.auth.onAuthStateChange;
   }
 
-  // ========== FAVORITOS ==========
-
-  // Agregar película a favoritos
+  
   static Future<void> addToFavorites({
     required int movieId,
     required String movieTitle,
@@ -82,7 +78,7 @@ class SupabaseService {
       final user = getCurrentUser();
       if (user == null) throw Exception('Usuario no autenticado');
 
-      // Evitar duplicados de forma explícita
+      
       final alreadyFavorite = await isInFavorites(movieId);
       if (alreadyFavorite) {
         debugPrint(
@@ -106,7 +102,7 @@ class SupabaseService {
           .maybeSingle();
       debugPrint('addToFavorites: insert response => ' + inserted.toString());
     } on PostgrestException catch (e) {
-      // Si es duplicado (23505), ignorar y considerar éxito
+      
       if (e.code == '23505') {
         debugPrint('addToFavorites: duplicado detectado 23505, ignorado.');
         return;
@@ -117,7 +113,7 @@ class SupabaseService {
     }
   }
 
-  // Eliminar película de favoritos
+  
   static Future<void> removeFromFavorites(int movieId) async {
     try {
       final user = getCurrentUser();
@@ -133,7 +129,7 @@ class SupabaseService {
     }
   }
 
-  // Obtener todos los favoritos del usuario
+  
   static Future<List<FavoriteModel>> getFavorites() async {
     try {
       final user = getCurrentUser();
@@ -155,7 +151,7 @@ class SupabaseService {
     }
   }
 
-  // Verificar si una película está en favoritos
+  
   static Future<bool> isInFavorites(int movieId) async {
     try {
       final user = getCurrentUser();
@@ -174,9 +170,9 @@ class SupabaseService {
     }
   }
 
-  // ========== PLAYLISTS ==========
+  
 
-  // Crear nueva playlist
+  
   static Future<PlaylistModel> createPlaylist({
     required String name,
     String? description,
@@ -202,7 +198,7 @@ class SupabaseService {
     }
   }
 
-  // Obtener todas las playlists del usuario
+ 
   static Future<List<PlaylistModel>> getPlaylists() async {
     try {
       final user = getCurrentUser();
@@ -222,13 +218,13 @@ class SupabaseService {
     }
   }
 
-  // Agregar película a playlist
+  
   static Future<void> addMovieToPlaylist(String playlistId, int movieId) async {
     try {
       final user = getCurrentUser();
       if (user == null) throw Exception('Usuario no autenticado');
 
-      // Obtener playlist actual
+      
       final response = await _client
           .from('playlists')
           .select()
@@ -237,7 +233,7 @@ class SupabaseService {
 
       final playlist = PlaylistModel.fromJson(response);
 
-      // Agregar película si no existe
+      
       if (!playlist.movieIds.contains(movieId)) {
         final updatedMovieIds = [...playlist.movieIds, movieId];
         await _client.from('playlists').update({
@@ -250,7 +246,7 @@ class SupabaseService {
     }
   }
 
-  // Eliminar película de playlist
+  
   static Future<void> removeMovieFromPlaylist(
       String playlistId, int movieId) async {
     try {
@@ -273,7 +269,7 @@ class SupabaseService {
     }
   }
 
-  // Eliminar playlist
+  
   static Future<void> deletePlaylist(String playlistId) async {
     try {
       await _client.from('playlists').delete().eq('id', playlistId);

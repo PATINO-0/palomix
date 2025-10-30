@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'movie_model.dart';
-// Modelo para mensajes del chat
+
 class ChatMessageModel extends Equatable {
   final String id;
   final String content;
@@ -30,8 +30,8 @@ class ChatMessageModel extends Equatable {
 }
 
 enum MessageType {
-  user,      // Mensaje del usuario
-  assistant, // Respuesta de la IA
-  movie,     // Información de película
-  error,     // Mensaje de error
+  user,      
+  assistant, 
+  movie,     
+  error,     
 }

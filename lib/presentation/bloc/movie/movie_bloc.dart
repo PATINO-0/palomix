@@ -5,7 +5,7 @@ import 'movie_event.dart';
 import 'movie_state.dart';
 import '../../../data/models/movie_model.dart';
 
-// BLoC para manejar operaciones con películas
+
 class MovieBloc extends Bloc<MovieEvent, MovieState> {
   final MovieRepository _movieRepository;
   bool _isLoadingMoreGenre = false;
@@ -77,7 +77,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
   ) async {
     emit(MovieLoading());
     try {
-      // Obtener favoritos del usuario
+      
       final favorites = await SupabaseService.getFavorites();
       final favoriteMovies = favorites.map((f) => f.movieTitle).toList();
       
@@ -258,7 +258,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
   ) async {
     emit(MovieLoading());
     try {
-      // Cargar contenido en paralelo para mejor rendimiento
+      
       final futures = await Future.wait([
         _movieRepository.getTrendingMovies(),
         _movieRepository.getTopRatedMovies(),
@@ -269,7 +269,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
       final topRatedMovies = futures[1] as List;
       final personalizedResult = futures[2] as Map<String, dynamic>;
 
-      // Cargar algunas películas por género popular
+      
       final genreMovies = <String, List>{}; 
       final popularGenres = [
         {'id': 28, 'name': 'Acción'},
@@ -283,7 +283,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
           final movies = await _movieRepository.getMoviesByGenre(genre['id'] as int);
           genreMovies[genre['name'] as String] = movies.take(10).toList();
         } catch (e) {
-          // Si falla un género, continúa con los otros
+          
           genreMovies[genre['name'] as String] = [];
         }
       }
@@ -313,7 +313,7 @@ class MovieBloc extends Bloc<MovieEvent, MovieState> {
       final favoriteMovies = favorites.map((f) => f.movieTitle).toList();
       return await _movieRepository.getPersonalizedRecommendations(favoriteMovies);
     } catch (e) {
-      // Si no hay favoritos o falla, devolver vacío
+      
       return {'movies': [], 'aiRecommendations': null};
     }
   }

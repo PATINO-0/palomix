@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-// Paleta de colores futurista: negro, blanco y rojo
+
 class AppColors {
-  // Colores principales
+  
   static const Color primaryBlack = Color(0xFF0A0A0A);
   static const Color secondaryBlack = Color(0xFF1A1A1A);
   static const Color tertiaryBlack = Color(0xFF2A2A2A);
@@ -15,12 +15,12 @@ class AppColors {
   static const Color softWhite = Color(0xFFF5F5F5);
   static const Color grayWhite = Color(0xFFE0E0E0);
   
-  // Colores de estado
+  
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color warningYellow = Color(0xFFFFC107);
   static const Color errorRed = Color(0xFFFF5252);
   
-  // Gradientes
+  
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryBlack, secondaryBlack],
     begin: Alignment.topLeft,

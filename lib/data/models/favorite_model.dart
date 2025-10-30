@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-// Modelo para películas favoritas del usuario
+
 class FavoriteModel extends Equatable {
   final String id;
   final String userId;
@@ -18,7 +18,7 @@ class FavoriteModel extends Equatable {
     required this.createdAt,
   });
   
-  // Conversión desde JSON de Supabase
+  
   factory FavoriteModel.fromJson(Map<String, dynamic> json) {
     return FavoriteModel(
       id: json['id'] ?? '',
@@ -30,7 +30,7 @@ class FavoriteModel extends Equatable {
     );
   }
   
-  // Conversión a JSON para Supabase
+  
   Map<String, dynamic> toJson() {
     return {
       'id': id,

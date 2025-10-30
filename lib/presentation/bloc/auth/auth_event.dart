@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-// Eventos de autenticación
+
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
   
@@ -8,10 +8,10 @@ abstract class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-// Verificar estado de autenticación
+
 class AuthCheckRequested extends AuthEvent {}
 
-// Iniciar sesión
+
 class AuthLoginRequested extends AuthEvent {
   final String email;
   final String password;
@@ -25,7 +25,7 @@ class AuthLoginRequested extends AuthEvent {
   List<Object?> get props => [email, password];
 }
 
-// Registrar nuevo usuario
+
 class AuthSignUpRequested extends AuthEvent {
   final String email;
   final String password;
@@ -41,5 +41,5 @@ class AuthSignUpRequested extends AuthEvent {
   List<Object?> get props => [email, password, fullName];
 }
 
-// Cerrar sesión
+
 class AuthLogoutRequested extends AuthEvent {}

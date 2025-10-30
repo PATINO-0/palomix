@@ -81,14 +81,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
           return Stack(
             children: [
-              // Fondo con gradiente
+              
               Container(
                 decoration: const BoxDecoration(
                   gradient: AppColors.primaryGradient,
                 ),
               ),
               
-              // Círculos decorativos de fondo - Diferentes posiciones que el Login
+              
               Positioned(
                 top: -150,
                 left: -120,
@@ -149,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     .scale(duration: 4000.ms, begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)),
               ),
               
-              // Contenido principal
+              
               SafeArea(
                 child: Center(
                   child: SingleChildScrollView(
@@ -157,7 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo flotante con efecto glass - Ícono diferente
+                        
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
@@ -201,7 +201,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         
                         const SizedBox(height: 25),
                         
-                        // Tarjeta de registro con glassmorphism
+                        
                         Container(
                           constraints: BoxConstraints(maxWidth: maxWidth),
                           decoration: BoxDecoration(
@@ -237,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      // Título PALOMIX
+                                      
                                       ShaderMask(
                                         shaderCallback: (bounds) => LinearGradient(
                                           colors: [
@@ -263,7 +263,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 12),
                                       
-                                      // Subtítulo
+                                      
                                       Text(
                                         'Crear Cuenta',
                                         textAlign: TextAlign.center,
@@ -279,7 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 32),
                                       
-                                      // Campo de nombre
+                                      
                                       _buildGlassTextField(
                                         controller: _nameController,
                                         label: 'Nombre Completo',
@@ -300,7 +300,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 16),
                                       
-                                      // Campo de email - ✅ REGEX CORREGIDO
+                                      
                                       _buildGlassTextField(
                                         controller: _emailController,
                                         label: 'Correo Electrónico',
@@ -311,7 +311,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             return 'Por favor ingresa tu correo';
                                           }
                                           final email = value.trim();
-                                          // ✅ CORRECCIÓN: Usar comillas dobles para evitar problemas con comilla simple
+                                          
                                           final emailRegex = RegExp(
                                               r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$");
                                           if (!emailRegex.hasMatch(email)) {
@@ -326,7 +326,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 16),
                                       
-                                      // Campo de contraseña
+                                      
                                       _buildGlassTextField(
                                         controller: _passwordController,
                                         label: 'Contraseña',
@@ -362,7 +362,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 16),
                                       
-                                      // Campo de confirmar contraseña
+                                      
                                       _buildGlassTextField(
                                         controller: _confirmPasswordController,
                                         label: 'Confirmar Contraseña',
@@ -398,7 +398,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 32),
                                       
-                                      // Botón de registro mejorado
+                                      
                                       _buildGlassButton(
                                         text: 'Registrarse',
                                         onPressed: isLoading ? null : _handleRegister,
@@ -410,7 +410,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 24),
                                       
-                                      // Divider decorativo
+                                      
                                       Row(
                                         children: [
                                           Expanded(
@@ -440,7 +440,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       
                                       const SizedBox(height: 24),
                                       
-                                      // Enlace a login
+                                      
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
@@ -495,7 +495,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               delay: 150.ms,
                               duration: 800.ms,
                               begin: const Offset(0.8, 0.8),
-                              end: const Offset(1.0, 1.0), // ✅ CORRECCIÓN: Agregado el parámetro 'end'
+                              end: const Offset(1.0, 1.0), 
                               curve: Curves.easeOut,
                             ),
                       ],
@@ -510,7 +510,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Widget personalizado para campos de texto con efecto glass
+  
   Widget _buildGlassTextField({
     required TextEditingController controller,
     required String label,
@@ -607,7 +607,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Botón personalizado con efecto glass
+  
   Widget _buildGlassButton({
     required String text,
     required VoidCallback? onPressed,

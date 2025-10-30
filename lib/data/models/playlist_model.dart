@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-// Modelo para listas de reproducción personalizadas
+
 class PlaylistModel extends Equatable {
   final String id;
   final String userId;
@@ -44,7 +44,7 @@ class PlaylistModel extends Equatable {
     };
   }
   
-  // Crear copia con modificaciones
+  
   PlaylistModel copyWith({
     String? id,
     String? userId,

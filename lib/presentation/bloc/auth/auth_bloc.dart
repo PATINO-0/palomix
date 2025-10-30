@@ -3,22 +3,22 @@ import '../../../data/services/supabase_service.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
-// BLoC para manejar autenticación
+
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc() : super(AuthInitial()) {
-    // Verificar estado de autenticación
+    
     on<AuthCheckRequested>(_onCheckRequested);
     
-    // Manejar inicio de sesión
+    
     on<AuthLoginRequested>(_onLoginRequested);
     
-    // Manejar registro
+    
     on<AuthSignUpRequested>(_onSignUpRequested);
     
-    // Manejar cierre de sesión
+    
     on<AuthLogoutRequested>(_onLogoutRequested);
     
-    // Escuchar cambios en el estado de autenticación
+    
     _authStateSubscription();
   }
   

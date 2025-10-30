@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/favorite_model.dart';
 
-// Tarjeta de ítem favorito
+
 class FavoriteItemCard extends StatelessWidget {
   final FavoriteModel favorite;
   final VoidCallback onTap;

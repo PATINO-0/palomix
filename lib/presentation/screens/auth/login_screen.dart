@@ -77,14 +77,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
           return Stack(
             children: [
-              // Fondo con gradiente
+              
               Container(
                 decoration: const BoxDecoration(
                   gradient: AppColors.primaryGradient,
                 ),
               ),
               
-              // Círculos decorativos de fondo
+              
               Positioned(
                 top: -100,
                 right: -100,
@@ -125,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     .scale(duration: 4000.ms, begin: const Offset(1.0, 1.0), end: const Offset(1.3, 1.3)),
               ),
               
-              // Contenido principal
+              
               SafeArea(
                 child: Center(
                   child: SingleChildScrollView(
@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo flotante con efecto glass
+                        
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
@@ -177,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         
                         const SizedBox(height: 30),
                         
-                        // Tarjeta de login con glassmorphism
+                        
                         Container(
                           constraints: BoxConstraints(maxWidth: maxWidth),
                           decoration: BoxDecoration(
@@ -213,7 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      // Título PALOMIX
+                                      
                                       ShaderMask(
                                         shaderCallback: (bounds) => LinearGradient(
                                           colors: [
@@ -239,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       
                                       const SizedBox(height: 12),
                                       
-                                      // Subtítulo
+                                     
                                       Text(
                                         'Iniciar Sesión',
                                         textAlign: TextAlign.center,
@@ -255,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       
                                       const SizedBox(height: 40),
                                       
-                                      // Campo de email con efecto glass
+                                      
                                       _buildGlassTextField(
                                         controller: _emailController,
                                         label: 'Correo Electrónico',
@@ -277,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       
                                       const SizedBox(height: 20),
                                       
-                                      // Campo de contraseña con efecto glass
+                                      
                                       _buildGlassTextField(
                                         controller: _passwordController,
                                         label: 'Contraseña',
@@ -313,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       
                                       const SizedBox(height: 36),
                                       
-                                      // Botón de login mejorado
+                                      
                                       _buildGlassButton(
                                         text: 'Iniciar Sesión',
                                         onPressed: isLoading ? null : _handleLogin,
@@ -325,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       
                                       const SizedBox(height: 24),
                                       
-                                      // Divider decorativo
+                                      
                                       Row(
                                         children: [
                                           Expanded(
@@ -355,7 +355,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       
                                       const SizedBox(height: 24),
                                       
-                                      // Enlace a registro
+                                      
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
@@ -424,7 +424,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget personalizado para campos de texto con efecto glass
+  
   Widget _buildGlassTextField({
     required TextEditingController controller,
     required String label,
@@ -521,7 +521,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Botón personalizado con efecto glass
+  
   Widget _buildGlassButton({
     required String text,
     required VoidCallback? onPressed,

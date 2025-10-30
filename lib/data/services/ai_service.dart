@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../core/constants/api_constants.dart';
 
-// Servicio de IA que maneja OpenAI y Groq
+
 class AiService {
   final http.Client _client;
   
   AiService({http.Client? client}) : _client = client ?? http.Client();
   
-  // Generar respuesta usando el proveedor configurado
+  
   Future<String> generateResponse(String prompt, {List<Map<String, String>>? conversationHistory}) async {
     switch (ApiConstants.currentProvider) {
       case AIProvider.openAi:
@@ -18,12 +18,12 @@ class AiService {
     }
   }
   
-  // Implementación para OpenAI (ChatGPT)
+ 
   Future<String> _generateOpenAiResponse(String prompt, List<Map<String, String>>? history) async {
     try {
       final messages = <Map<String, String>>[];
       
-      // System prompt para guiar el comportamiento de la IA
+      
       messages.add({
         'role': 'system',
         'content': '''Eres un asistente experto en películas y series. Tu función es:
@@ -35,12 +35,12 @@ class AiService {
 Siempre mantén un tono entusiasta sobre el cine.'''
       });
       
-      // Agregar historial de conversación si existe
+      
       if (history != null) {
         messages.addAll(history);
       }
       
-      // Agregar mensaje actual
+      
       messages.add({'role': 'user', 'content': prompt});
       
       final response = await _client.post(
@@ -68,7 +68,7 @@ Siempre mantén un tono entusiasta sobre el cine.'''
     }
   }
   
-  // Implementación para Groq (respaldo)
+  
   Future<String> _generateGroqResponse(String prompt, List<Map<String, String>>? history) async {
     try {
       final messages = <Map<String, String>>[];
@@ -115,7 +115,7 @@ Siempre mantén un tono entusiasta sobre el cine.'''
     }
   }
   
-  // Generar resumen de película con contexto
+  
   Future<String> generateMovieSummary(String movieTitle, String overview) async {
     final prompt = '''Genera un resumen conciso y atractivo de la película "$movieTitle".
     
@@ -126,7 +126,7 @@ Por favor, crea un resumen de 20-30 oraciones que capture la esencia de la trama
     return await generateResponse(prompt);
   }
   
-  // Generar recomendaciones personalizadas basadas en favoritos
+  
   Future<String> generatePersonalizedRecommendations(List<String> favoriteMovies) async {
     final prompt = '''Basándote en las siguientes películas favoritas del usuario:
 ${favoriteMovies.join(', ')}

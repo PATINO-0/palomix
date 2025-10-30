@@ -6,7 +6,6 @@ import '../bloc/movie/movie_bloc.dart';
 import '../bloc/movie/movie_event.dart';
 import 'app_network_image.dart';
 
-// Tarjeta de película
 class MovieCard extends StatelessWidget {
   final MovieModel movie;
   final VoidCallback? onTap;

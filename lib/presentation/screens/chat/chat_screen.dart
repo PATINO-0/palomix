@@ -122,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     context.read<MovieBloc>().add(MovieDetailsRequested(movieId));
   }
 
-  // ⭐ MÉTODO CORREGIDO: Agregar a favoritos
+
   void _addToFavorites(MovieModel movie) {
     context.read<FavoritesCubit>().addToFavorites(
       movieId: movie.id,
