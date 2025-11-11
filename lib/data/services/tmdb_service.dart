@@ -52,6 +52,32 @@ class TmdbService {
     }
   }
 
+  Future<List<MovieModel>> _fetchList(
+    String path, {
+    Map<String, String>? query,
+    int take = 20,
+  }) async {
+    try {
+      _ensureAuthConfigured();
+      final response = await _get(path, {
+        'language': 'es-MX',
+        ...?query,
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final results = data['results'] as List;
+        return results.take(take).map((movie) => MovieModel.fromJson(movie)).toList();
+      } else if (response.statusCode == 401) {
+        throw Exception('TMDB: API key/token inválido (401)');
+      } else {
+        throw Exception('Error al obtener datos de TMDB: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
   Future<MovieModel> getMovieDetails(int movieId) async {
     try {
       _ensureAuthConfigured();
@@ -76,131 +102,30 @@ class TmdbService {
   }
 
   Future<List<MovieModel>> getSimilarMovies(int movieId) async {
-    try {
-      _ensureAuthConfigured();
-      final response = await _get('/movie/$movieId/similar', {
-        'language': 'es-MX',
-      });
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final results = data['results'] as List;
-        return results.take(6).map((movie) => MovieModel.fromJson(movie)).toList();
-      } else if (response.statusCode == 401) {
-        throw Exception('TMDB: API key/token inválido (401)');
-      } else {
-        throw Exception('Error al obtener películas similares');
-      }
-    } catch (e) {
-      throw Exception('Error de conexión: $e');
-    }
+    return _fetchList('/movie/$movieId/similar', take: 6);
   }
 
   Future<List<MovieModel>> getRecommendations(int movieId) async {
-    try {
-      _ensureAuthConfigured();
-      final response = await _get('/movie/$movieId/recommendations', {
-        'language': 'es-MX',
-      });
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final results = data['results'] as List;
-        return results.take(6).map((movie) => MovieModel.fromJson(movie)).toList();
-      } else if (response.statusCode == 401) {
-        throw Exception('TMDB: API key/token inválido (401)');
-      } else {
-        throw Exception('Error al obtener recomendaciones');
-      }
-    } catch (e) {
-      throw Exception('Error de conexión: $e');
-    }
+    return _fetchList('/movie/$movieId/recommendations', take: 6);
   }
 
   Future<List<MovieModel>> getPopularMovies() async {
-    try {
-      _ensureAuthConfigured();
-      final response = await _get('/movie/popular', {
-        'language': 'es-MX',
-      });
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final results = data['results'] as List;
-        return results.take(10).map((movie) => MovieModel.fromJson(movie)).toList();
-      } else if (response.statusCode == 401) {
-        throw Exception('TMDB: API key/token inválido (401)');
-      } else {
-        throw Exception('Error al obtener películas populares');
-      }
-    } catch (e) {
-      throw Exception('Error de conexión: $e');
-    }
+    return _fetchList('/movie/popular', take: 10);
   }
 
   Future<List<MovieModel>> getTrendingMovies() async {
-    try {
-      _ensureAuthConfigured();
-      final response = await _get('/trending/movie/week', {
-        'language': 'es-MX',
-      });
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final results = data['results'] as List;
-        return results.take(20).map((movie) => MovieModel.fromJson(movie)).toList();
-      } else if (response.statusCode == 401) {
-        throw Exception('TMDB: API key/token inválido (401)');
-      } else {
-        throw Exception('Error al obtener películas trending');
-      }
-    } catch (e) {
-      throw Exception('Error de conexión: $e');
-    }
+    return _fetchList('/trending/movie/week');
   }
 
   Future<List<MovieModel>> getTopRatedMovies() async {
-    try {
-      _ensureAuthConfigured();
-      final response = await _get('/movie/top_rated', {
-        'language': 'es-MX',
-      });
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final results = data['results'] as List;
-        return results.take(20).map((movie) => MovieModel.fromJson(movie)).toList();
-      } else if (response.statusCode == 401) {
-        throw Exception('TMDB: API key/token inválido (401)');
-      } else {
-        throw Exception('Error al obtener películas mejor valoradas');
-      }
-    } catch (e) {
-      throw Exception('Error de conexión: $e');
-    }
+    return _fetchList('/movie/top_rated');
   }
 
   Future<List<MovieModel>> getMoviesByGenre(int genreId, {int page = 1}) async {
-    try {
-      _ensureAuthConfigured();
-      final response = await _get('/discover/movie', {
-        'language': 'es-MX',
-        'with_genres': genreId.toString(),
-        'sort_by': 'popularity.desc',
-        'page': page.toString(),
-      });
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final results = data['results'] as List;
-        return results.take(20).map((movie) => MovieModel.fromJson(movie)).toList();
-      } else if (response.statusCode == 401) {
-        throw Exception('TMDB: API key/token inválido (401)');
-      } else {
-        throw Exception('Error al obtener películas por género');
-      }
-    } catch (e) {
-      throw Exception('Error de conexión: $e');
-    }
+    return _fetchList('/discover/movie', query: {
+      'with_genres': genreId.toString(),
+      'sort_by': 'popularity.desc',
+      'page': page.toString(),
+    });
   }
 }
