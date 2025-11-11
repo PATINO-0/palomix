@@ -18,10 +18,15 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateMixin {
+class _ExploreScreenState extends State<ExploreScreen>
+    with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   Timer? _scrollDebounceTimer;
   late AnimationController _headerAnimationController;
+  ExploreContentSuccess? _cachedExploreContent;
+  bool _isFetchingExplore = false;
+  Completer<void>? _exploreCompleter;
+  final Set<int> _favoriteMovieIds = {};
 
   final Map<String, int> genres = {
     'Acción': 28,
@@ -41,7 +46,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..forward();
-    context.read<MovieBloc>().add(ExploreContentRequested());
+    context.read<FavoritesCubit>().loadFavorites();
+    _requestExploreContent();
   }
 
   @override
@@ -57,13 +63,69 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     _showDetailsBottomSheet();
   }
 
-  void _addToFavorites(MovieModel movie) {
-    context.read<FavoritesCubit>().addToFavorites(
-      movieId: movie.id,
-      movieTitle: movie.title,
-      posterPath: movie.posterPath,
-    );
-    _showSnackBar('${movie.title} agregado a favoritos ❤️');
+  Future<void> _toggleFavorite(MovieModel movie) async {
+    final favoritesCubit = context.read<FavoritesCubit>();
+    final isFavorite = _favoriteMovieIds.contains(movie.id);
+    try {
+      if (isFavorite) {
+        await favoritesCubit.removeFavorite(movie.id);
+        setState(() {
+          _favoriteMovieIds.remove(movie.id);
+        });
+        _showSnackBar('${movie.title} se eliminó de favoritos');
+      } else {
+        await favoritesCubit.addToFavorites(
+          movieId: movie.id,
+          movieTitle: movie.title,
+          posterPath: movie.posterPath,
+        );
+        setState(() {
+          _favoriteMovieIds.add(movie.id);
+        });
+        _showSnackBar('${movie.title} agregado a favoritos ❤️');
+      }
+    } catch (_) {
+      _showSnackBar('No se pudo actualizar tus favoritos. Intenta de nuevo.');
+    }
+  }
+
+  Future<void> _requestExploreContent() {
+    if (_exploreCompleter != null && !_exploreCompleter!.isCompleted) {
+      return _exploreCompleter!.future;
+    }
+    _exploreCompleter = Completer<void>();
+    setState(() {
+      _isFetchingExplore = true;
+    });
+    context.read<MovieBloc>().add(ExploreContentRequested());
+    return _exploreCompleter!.future;
+  }
+
+  void _handleExploreState(MovieState state) {
+    if (state is ExploreContentSuccess) {
+      setState(() {
+        _cachedExploreContent = state;
+        _isFetchingExplore = false;
+      });
+      _exploreCompleter?.complete();
+      _exploreCompleter = null;
+    } else if (state is MovieError) {
+      setState(() {
+        _isFetchingExplore = false;
+      });
+      _exploreCompleter?.complete();
+      _exploreCompleter = null;
+    }
+  }
+
+  void _handleFavoritesState(BuildContext context, FavoritesState state) {
+    if (state is FavoritesLoaded) {
+      setState(() {
+        _favoriteMovieIds
+          ..clear()
+          ..addAll(state.favorites.map((favorite) => favorite.movieId));
+      });
+    }
   }
 
   void _showDetailsBottomSheet() {
@@ -84,86 +146,94 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryBlack,
-            AppColors.secondaryBlack,
-            AppColors.primaryBlack,
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<MovieBloc, MovieState>(
+          listenWhen: (_, state) =>
+              state is ExploreContentSuccess || state is MovieError,
+          listener: (context, state) => _handleExploreState(state),
+        ),
+        BlocListener<FavoritesCubit, FavoritesState>(
+          listener: _handleFavoritesState,
+        ),
+      ],
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primaryBlack,
+              AppColors.secondaryBlack,
+              AppColors.primaryBlack,
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            _buildBackgroundDecorations(),
+            RefreshIndicator(
+              onRefresh: _requestExploreContent,
+              color: AppColors.primaryRed,
+              backgroundColor: AppColors.secondaryBlack,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildModernHeader(),
+                  ),
+                  BlocBuilder<MovieBloc, MovieState>(
+                    builder: (context, state) {
+                      final ExploreContentSuccess? exploreContent =
+                          state is ExploreContentSuccess
+                              ? state
+                              : _cachedExploreContent;
+                      final showLoading = exploreContent == null &&
+                          (_isFetchingExplore || state is MovieLoading);
+
+                      if (showLoading) {
+                        return SliverFillRemaining(
+                          child: _buildLoadingState(),
+                        );
+                      }
+
+                      if (exploreContent != null) {
+                        return SliverList(
+                          delegate: SliverChildListDelegate([
+                            if (exploreContent.personalizedMovies.isNotEmpty)
+                              _buildPersonalizedSection(exploreContent),
+                            const SizedBox(height: 24),
+                            if (exploreContent.trendingMovies.isNotEmpty)
+                              _buildTrendingSection(
+                                  exploreContent.trendingMovies),
+                            const SizedBox(height: 24),
+                            if (exploreContent.topRatedMovies.isNotEmpty)
+                              _buildTopRatedSection(
+                                  exploreContent.topRatedMovies),
+                            const SizedBox(height: 24),
+                            _buildGenresSection(),
+                            const SizedBox(height: 100),
+                          ]),
+                        );
+                      }
+
+                      if (state is MovieError && exploreContent == null) {
+                        return SliverFillRemaining(
+                          child: _buildErrorState(state.message),
+                        );
+                      }
+
+                      return SliverFillRemaining(
+                        child: _buildEmptyState(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-      child: Stack(
-        children: [
-          _buildBackgroundDecorations(),
-          RefreshIndicator(
-            onRefresh: () async {
-              context.read<MovieBloc>().add(ExploreContentRequested());
-            },
-            color: AppColors.primaryRed,
-            backgroundColor: AppColors.secondaryBlack,
-            child: CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _buildModernHeader(),
-                ),
-                BlocBuilder<MovieBloc, MovieState>(
-                  builder: (context, state) {
-                    if (state is MovieLoading) {
-                      return SliverFillRemaining(
-                        child: _buildLoadingState(),
-                      );
-                    }
-
-                    if (state is MovieError) {
-                      return SliverFillRemaining(
-                        child: _buildErrorState(state.message),
-                      );
-                    }
-
-                    if (state is ExploreContentSuccess) {
-                      return SliverList(
-                        delegate: SliverChildListDelegate([
-                          // Recomendaciones personalizadas
-                          if (state.personalizedMovies.isNotEmpty)
-                            _buildPersonalizedSection(state),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Tendencias
-                          if (state.trendingMovies.isNotEmpty)
-                            _buildTrendingSection(state.trendingMovies),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Mejor valoradas
-                          if (state.topRatedMovies.isNotEmpty)
-                            _buildTopRatedSection(state.topRatedMovies),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Géneros
-                          _buildGenresSection(),
-                          
-                          const SizedBox(height: 100),
-                        ]),
-                      );
-                    }
-
-                    return SliverFillRemaining(
-                      child: _buildEmptyState(),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -266,12 +336,9 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                   color: Colors.white,
                   size: 28,
                 ),
-              )
-                  .animate(onPlay: (controller) => controller.repeat())
-                  .shimmer(duration: 2000.ms, color: Colors.white.withOpacity(0.3)),
-              
+              ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+                  duration: 2000.ms, color: Colors.white.withOpacity(0.3)),
               const SizedBox(width: 16),
-              
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,7 +384,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('💡 Para Ti', Icons.wb_incandescent_rounded),
-        
         if (state.aiRecommendations?.isNotEmpty ?? false)
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -359,7 +425,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               .animate()
               .fadeIn(delay: 200.ms, duration: 600.ms)
               .slideX(begin: -0.2, end: 0),
-        
         _buildHorizontalMovieList(state.personalizedMovies),
       ],
     );
@@ -369,7 +434,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('🔥 Tendencias', Icons.local_fire_department_rounded),
+        _buildSectionHeader(
+            '🔥 Tendencias', Icons.local_fire_department_rounded),
         _buildHorizontalMovieList(movies),
       ],
     );
@@ -432,10 +498,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           ),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(duration: 400.ms)
-        .slideX(begin: -0.2, end: 0);
+    ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.2, end: 0);
   }
 
   Widget _buildHorizontalMovieList(List<MovieModel> movies) {
@@ -454,6 +517,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
   }
 
   Widget _buildMovieCard(MovieModel movie, int index) {
+    final isFavorite = _favoriteMovieIds.contains(movie.id);
     return GestureDetector(
       onTap: () => _showMovieDetails(movie.id),
       child: Container(
@@ -494,7 +558,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                             ),
                           ),
                   ),
-                  
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
@@ -508,12 +571,12 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       ),
                     ),
                   ),
-                  
                   Positioned(
                     top: 6,
                     right: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(6),
@@ -543,31 +606,42 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       ),
                     ),
                   ),
-                  
                   Positioned(
                     top: 6,
                     left: 6,
                     child: GestureDetector(
-                      onTap: () => _addToFavorites(movie),
-                      child: Container(
+                      onTap: () => _toggleFavorite(movie),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.black.withOpacity(0.7),
                           border: Border.all(
-                            color: AppColors.primaryRed.withOpacity(0.5),
-                            width: 1,
+                            color: isFavorite
+                                ? AppColors.primaryRed
+                                : Colors.white.withOpacity(0.4),
+                            width: 1.2,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Icon(
-                          Icons.favorite_rounded,
-                          color: AppColors.primaryRed,
+                          isFavorite
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color:
+                              isFavorite ? AppColors.primaryRed : Colors.white,
                           size: 14,
                         ),
                       ),
                     ),
                   ),
-                  
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -656,7 +730,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
         builder: (context, scrollController) {
           return BlocProvider.value(
             value: context.read<MovieBloc>()
-              ..add(MoviesByGenreRequested(genreId: genreId, genreName: genreName)),
+              ..add(MoviesByGenreRequested(
+                  genreId: genreId, genreName: genreName)),
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -667,7 +742,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                     AppColors.secondaryBlack,
                   ],
                 ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: Column(
                 children: [
@@ -680,7 +756,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
-                  
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
@@ -718,13 +793,12 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
-                  
                   const SizedBox(height: 16),
-                  
                   Expanded(
                     child: BlocBuilder<MovieBloc, MovieState>(
                       builder: (context, state) {
-                        return _buildGenreContent(state, scrollController, genreId, genreName);
+                        return _buildGenreContent(
+                            state, scrollController, genreId, genreName);
                       },
                     ),
                   ),
@@ -754,7 +828,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
     if (state is MoviesByGenreSuccess) {
       return NotificationListener<ScrollNotification>(
         onNotification: (notification) {
-          if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 200 &&
+          if (notification.metrics.pixels >=
+                  notification.metrics.maxScrollExtent - 200 &&
               state.hasMore &&
               !state.isLoadingMore) {
             _scrollDebounceTimer?.cancel();
@@ -787,7 +862,8 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
             if (index == state.movies.length) {
               return Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
                   strokeWidth: 2,
                 ),
               );
@@ -824,9 +900,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
           )
               .animate(onPlay: (controller) => controller.repeat())
               .rotate(duration: 2000.ms),
-          
           const SizedBox(height: 20),
-          
           Text(
             'Cargando contenido...',
             style: TextStyle(color: AppColors.softWhite, fontSize: 16),
@@ -860,9 +934,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               .animate()
               .fadeIn(duration: 600.ms)
               .scale(begin: const Offset(0.5, 0.5), curve: Curves.elasticOut),
-          
           const SizedBox(height: 24),
-          
           Text(
             'Ocurrió un error',
             style: TextStyle(
@@ -871,9 +943,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               fontWeight: FontWeight.bold,
             ),
           ),
-          
           const SizedBox(height: 12),
-          
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
@@ -885,9 +955,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               ),
             ),
           ),
-          
           const SizedBox(height: 24),
-          
           GestureDetector(
             onTap: () {
               context.read<MovieBloc>().add(ExploreContentRequested());
@@ -947,9 +1015,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               .animate()
               .fadeIn(duration: 600.ms)
               .scale(begin: const Offset(0.5, 0.5), curve: Curves.elasticOut),
-          
           const SizedBox(height: 24),
-          
           Text(
             'No hay contenido disponible',
             style: TextStyle(
@@ -1000,7 +1066,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       ),
                     ),
                   ),
-
                   if (movie.fullPosterUrl != null)
                     Center(
                       child: Container(
@@ -1025,9 +1090,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                         ),
                       ),
                     ),
-
                   const SizedBox(height: 20),
-
                   Text(
                     movie.title,
                     textAlign: TextAlign.center,
@@ -1037,9 +1100,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1055,9 +1116,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
                   if (movie.overview.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -1079,7 +1138,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                         ),
                       ),
                     ),
-
                   if (state.similarMovies.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     Text(
@@ -1121,7 +1179,6 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
                   ],
                 ],
               ),
-
               Positioned(
                 top: 20,
                 right: 20,
@@ -1147,9 +1204,7 @@ class _ExploreScreenState extends State<ExploreScreen> with TickerProviderStateM
               ),
             ],
           ),
-        )
-            .animate()
-            .slideY(begin: 1, duration: 400.ms, curve: Curves.easeOut);
+        ).animate().slideY(begin: 1, duration: 400.ms, curve: Curves.easeOut);
       },
     );
   }

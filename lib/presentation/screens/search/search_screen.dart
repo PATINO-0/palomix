@@ -17,11 +17,17 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMixin {
+class _SearchScreenState extends State<SearchScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   late AnimationController _searchAnimationController;
   bool _isSearchFocused = false;
+  List<MovieModel> _searchResults = [];
+  bool _isSearchLoading = false;
+  bool _hasSearched = false;
+  String? _searchError;
+  Set<int> _favoriteMovieIds = {};
 
   @override
   void initState() {
@@ -40,6 +46,10 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
         _searchAnimationController.reverse();
       }
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<FavoritesCubit>().loadFavorites();
+    });
   }
 
   @override
@@ -54,13 +64,23 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
     final query = _controller.text.trim();
     if (query.isNotEmpty) {
       _focusNode.unfocus();
+      setState(() {
+        _isSearchLoading = true;
+        _hasSearched = true;
+        _searchError = null;
+      });
       context.read<MovieBloc>().add(MovieSearchRequested(query));
     }
   }
 
   void _onClear() {
     _controller.clear();
-    setState(() {});
+    setState(() {
+      _searchResults = [];
+      _isSearchLoading = false;
+      _hasSearched = false;
+      _searchError = null;
+    });
   }
 
   void _showMovieDetails(int movieId) {
@@ -68,13 +88,30 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
     _showDetailsBottomSheet();
   }
 
-  void _addToFavorites(MovieModel movie) {
-    context.read<FavoritesCubit>().addToFavorites(
-      movieId: movie.id,
-      movieTitle: movie.title,
-      posterPath: movie.posterPath,
-    );
-    _showSnackBar('${movie.title} agregado a favoritos ❤️');
+  Future<void> _toggleFavorite(MovieModel movie) async {
+    final favoritesCubit = context.read<FavoritesCubit>();
+    final isFavorite = _favoriteMovieIds.contains(movie.id);
+    try {
+      if (isFavorite) {
+        await favoritesCubit.removeFavorite(movie.id);
+        setState(() {
+          _favoriteMovieIds.remove(movie.id);
+        });
+        _showSnackBar('${movie.title} removed from favorites');
+      } else {
+        await favoritesCubit.addToFavorites(
+          movieId: movie.id,
+          movieTitle: movie.title,
+          posterPath: movie.posterPath,
+        );
+        setState(() {
+          _favoriteMovieIds.add(movie.id);
+        });
+        _showSnackBar('${movie.title} added to favorites \u2764\uFE0F');
+      }
+    } catch (_) {
+      _showSnackBar('Could not update favorites, please try again.');
+    }
   }
 
   void _showDetailsBottomSheet() {
@@ -99,63 +136,109 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
     final isTablet = size.width > 600;
     final crossAxisCount = isTablet ? 6 : 4;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryBlack,
-            AppColors.secondaryBlack,
-            AppColors.primaryBlack,
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<MovieBloc, MovieState>(
+          listener: _handleMovieStateUpdates,
+        ),
+        BlocListener<FavoritesCubit, FavoritesState>(
+          listener: _handleFavoritesStateUpdates,
+        ),
+      ],
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primaryBlack,
+              AppColors.secondaryBlack,
+              AppColors.primaryBlack,
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Background decorations
+            _buildBackgroundDecorations(),
+
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header with search bar
+                  _buildSearchHeader(),
+
+                  // Main content
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: _buildSearchContent(crossAxisCount),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-      child: Stack(
-        children: [
-          // Decoraciones de fondo
-          _buildBackgroundDecorations(),
-          
-          SafeArea(
-            child: Column(
-              children: [
-                // Header con barra de búsqueda
-                _buildSearchHeader(),
-                
-                // Contenido principal
-                Expanded(
-                  child: BlocBuilder<MovieBloc, MovieState>(
-                    builder: (context, state) {
-                      if (state is MovieLoading) {
-                        return _buildLoadingState();
-                      }
-
-                      if (state is MovieSearchSuccess) {
-                        final movies = state.movies;
-                        if (movies.isEmpty) {
-                          return _buildEmptyState(
-                            'No se encontraron resultados',
-                            'Intenta con otro término de búsqueda',
-                            Icons.movie_filter_rounded,
-                          );
-                        }
-                        return _buildMoviesGrid(movies, crossAxisCount);
-                      }
-
-                      return _buildEmptyState(
-                        'Explora el mundo del cine',
-                        'Busca tus películas favoritas',
-                        Icons.search_rounded,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
+  }
+
+  void _handleMovieStateUpdates(BuildContext context, MovieState state) {
+    if (state is MovieSearchSuccess) {
+      setState(() {
+        _searchResults = state.movies;
+        _isSearchLoading = false;
+        _searchError = null;
+      });
+    } else if (state is MovieError && _isSearchLoading) {
+      setState(() {
+        _searchError = 'We could not load results, please try again.';
+        _isSearchLoading = false;
+      });
+    }
+  }
+
+  void _handleFavoritesStateUpdates(
+      BuildContext context, FavoritesState state) {
+    if (state is FavoritesLoaded) {
+      setState(() {
+        _favoriteMovieIds =
+            state.favorites.map((favorite) => favorite.movieId).toSet();
+      });
+    }
+  }
+
+  Widget _buildSearchContent(int crossAxisCount) {
+    if (_isSearchLoading) {
+      return _buildLoadingState();
+    }
+
+    if (_searchError != null) {
+      return _buildEmptyState(
+        'Something went wrong',
+        _searchError!,
+        Icons.error_outline,
+      );
+    }
+
+    if (!_hasSearched) {
+      return _buildEmptyState(
+        'Explore the world of cinema',
+        'Search for your favorite movies',
+        Icons.search_rounded,
+      );
+    }
+
+    if (_searchResults.isEmpty) {
+      return _buildEmptyState(
+        'No results found',
+        'Try another search term',
+        Icons.movie_filter_rounded,
+      );
+    }
+
+    return _buildMoviesGrid(_searchResults, crossAxisCount);
   }
 
   Widget _buildBackgroundDecorations() {
@@ -216,7 +299,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
       margin: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Título de la sección
+          // Section title
           Row(
             children: [
               Container(
@@ -239,12 +322,9 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                   color: Colors.white,
                   size: 24,
                 ),
-              )
-                  .animate(onPlay: (controller) => controller.repeat())
-                  .shimmer(duration: 2000.ms, color: Colors.white.withOpacity(0.3)),
-              
+              ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+                  duration: 2000.ms, color: Colors.white.withOpacity(0.3)),
               const SizedBox(width: 16),
-              
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +334,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                         colors: [AppColors.primaryRed, Colors.orange],
                       ).createShader(bounds),
                       child: Text(
-                        'Buscar',
+                        'Search',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -265,7 +345,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Encuentra películas y series',
+                      'Find movies and series',
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.softWhite.withOpacity(0.7),
@@ -280,10 +360,8 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
               .animate()
               .fadeIn(duration: 600.ms)
               .slideY(begin: -0.3, end: 0, curve: Curves.easeOut),
-          
           const SizedBox(height: 16),
-          
-          // Barra de búsqueda mejorada
+          // Enhanced search bar
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -314,7 +392,8 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Row(
                     children: [
                       Icon(
@@ -336,13 +415,14 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                             fontSize: 15,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'Buscar películas, series, actores...',
+                            hintText: 'Search movies, shows, or people...',
                             hintStyle: TextStyle(
                               color: AppColors.softWhite.withOpacity(0.5),
                               fontSize: 14,
                             ),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
                       ),
@@ -387,7 +467,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                             ],
                           ),
                           child: Text(
-                            'Buscar',
+                            'Search',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -421,7 +501,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Contador de resultados
+          // Result counter
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -442,7 +522,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '${movies.length} resultado${movies.length != 1 ? 's' : ''} encontrado${movies.length != 1 ? 's' : ''}',
+                  '${movies.length} result${movies.length == 1 ? '' : 's'} found',
                   style: TextStyle(
                     color: AppColors.softWhite,
                     fontSize: 14,
@@ -451,14 +531,11 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                 ),
               ],
             ),
-          )
-              .animate()
-              .fadeIn(duration: 400.ms)
-              .slideX(begin: -0.2, end: 0),
-          
+          ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.2, end: 0),
+
           const SizedBox(height: 16),
-          
-          // Grid de películas
+
+          // Movie grid
           Expanded(
             child: GridView.builder(
               physics: const BouncingScrollPhysics(),
@@ -480,6 +557,8 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
   }
 
   Widget _buildMovieCard(MovieModel movie, int index) {
+    final isFavorite = _favoriteMovieIds.contains(movie.id);
+
     return GestureDetector(
       onTap: () => _showMovieDetails(movie.id),
       child: Container(
@@ -496,7 +575,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
         ),
         child: Stack(
           children: [
-            // Poster
+            // Poster image
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: movie.posterPath != null
@@ -515,8 +594,8 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                       ),
                     ),
             ),
-            
-            // Gradiente overlay
+
+            // Gradient overlay
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
@@ -530,35 +609,44 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                 ),
               ),
             ),
-            
+
             // Rating badge
             Positioned(
-              top: 6,
-              right: 6,
+              top: 8,
+              right: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Colors.amber.withOpacity(0.5),
-                    width: 1,
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.amberAccent.shade200,
+                      Colors.deepOrangeAccent.shade200,
+                    ],
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.star_rounded,
-                      color: Colors.amber,
-                      size: 12,
+                    const Icon(
+                      Icons.star_rate_rounded,
+                      color: Colors.white,
+                      size: 14,
                     ),
-                    const SizedBox(width: 3),
+                    const SizedBox(width: 4),
                     Text(
                       movie.voteAverage.toStringAsFixed(1),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -566,33 +654,45 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                 ),
               ),
             ),
-            
-            // Botón de favorito
+
+            // Favorite button
             Positioned(
-              top: 6,
-              left: 6,
+              top: 8,
+              left: 8,
               child: GestureDetector(
-                onTap: () => _addToFavorites(movie),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
+                onTap: () => _toggleFavorite(movie),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withOpacity(0.65),
                     border: Border.all(
-                      color: AppColors.primaryRed.withOpacity(0.5),
-                      width: 1,
+                      color: isFavorite
+                          ? AppColors.primaryRed
+                          : Colors.white.withOpacity(0.3),
+                      width: 1.5,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Icon(
-                    Icons.favorite_rounded,
-                    color: AppColors.primaryRed,
-                    size: 14,
+                    isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isFavorite ? AppColors.primaryRed : Colors.white,
+                    size: 16,
                   ),
                 ),
               ),
             ),
-            
-            // Título
+
+            // Title
             Positioned(
               bottom: 0,
               left: 0,
@@ -660,11 +760,9 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
           )
               .animate(onPlay: (controller) => controller.repeat())
               .rotate(duration: 2000.ms),
-          
           const SizedBox(height: 20),
-          
           Text(
-            'Buscando películas...',
+            'Searching movies...',
             style: TextStyle(
               color: AppColors.softWhite,
               fontSize: 16,
@@ -704,16 +802,11 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
               size: 60,
               color: AppColors.primaryRed,
             ),
-          )
-              .animate()
-              .fadeIn(duration: 600.ms)
-              .scale(
+          ).animate().fadeIn(duration: 600.ms).scale(
                 begin: const Offset(0.5, 0.5),
                 curve: Curves.elasticOut,
               ),
-          
           const SizedBox(height: 24),
-          
           ShaderMask(
             shaderCallback: (bounds) => LinearGradient(
               colors: [AppColors.primaryRed, Colors.orange],
@@ -730,9 +823,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
               .animate()
               .fadeIn(delay: 300.ms, duration: 600.ms)
               .slideY(begin: 0.3, end: 0),
-          
           const SizedBox(height: 12),
-          
           Text(
             subtitle,
             textAlign: TextAlign.center,
@@ -740,9 +831,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
               fontSize: 14,
               color: AppColors.softWhite.withOpacity(0.7),
             ),
-          )
-              .animate()
-              .fadeIn(delay: 500.ms, duration: 600.ms),
+          ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
         ],
       ),
     );
@@ -787,7 +876,6 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                       ),
                     ),
                   ),
-
                   if (movie.fullPosterUrl != null)
                     Center(
                       child: Container(
@@ -810,18 +898,13 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                             fit: BoxFit.cover,
                           ),
                         ),
-                      )
-                          .animate()
-                          .fadeIn(duration: 600.ms)
-                          .scale(
+                      ).animate().fadeIn(duration: 600.ms).scale(
                             duration: 600.ms,
                             begin: const Offset(0.8, 0.8),
                             curve: Curves.easeOut,
                           ),
                     ),
-
                   const SizedBox(height: 20),
-
                   Text(
                     movie.title,
                     textAlign: TextAlign.center,
@@ -831,9 +914,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -849,9 +930,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
                   if (movie.overview.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -875,7 +954,6 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                     ),
                 ],
               ),
-
               Positioned(
                 top: 20,
                 right: 20,
@@ -904,9 +982,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
               ),
             ],
           ),
-        )
-            .animate()
-            .slideY(begin: 1, duration: 400.ms, curve: Curves.easeOut);
+        ).animate().slideY(begin: 1, duration: 400.ms, curve: Curves.easeOut);
       },
     );
   }
