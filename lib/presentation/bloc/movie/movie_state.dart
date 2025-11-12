@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import '../../../data/models/movie_model.dart';
 import '../../../data/models/favorite_model.dart';
 
-// Estados relacionados con películas
+
 abstract class MovieState extends Equatable {
   const MovieState();
   
@@ -10,15 +10,15 @@ abstract class MovieState extends Equatable {
   List<Object?> get props => [];
 }
 
-// Estado inicial
+
 class MovieInitial extends MovieState {}
 
-// Cargando
+
 class MovieLoading extends MovieState {}
 
-// Resultados de búsqueda
+
 class MovieSearchSuccess extends MovieState {
-  final List<MovieModel> movies;
+  final List<MovieModel> movies; 
   
   const MovieSearchSuccess(this.movies);
   
@@ -26,7 +26,7 @@ class MovieSearchSuccess extends MovieState {
   List<Object?> get props => [movies];
 }
 
-// Detalles de película cargados
+
 class MovieDetailsSuccess extends MovieState {
   final MovieModel movie;
   final String aiSummary;
@@ -44,7 +44,7 @@ class MovieDetailsSuccess extends MovieState {
   List<Object?> get props => [movie, aiSummary, similarMovies, recommendations];
 }
 
-// Recomendaciones personalizadas
+
 class PersonalizedRecommendationsSuccess extends MovieState {
   final List<MovieModel> movies;
   final String aiRecommendations;
@@ -58,7 +58,7 @@ class PersonalizedRecommendationsSuccess extends MovieState {
   List<Object?> get props => [movies, aiRecommendations];
 }
 
-// Favoritos cargados
+
 class FavoritesLoadedSuccess extends MovieState {
   final List<FavoriteModel> favorites;
   
@@ -68,13 +68,13 @@ class FavoritesLoadedSuccess extends MovieState {
   List<Object?> get props => [favorites];
 }
 
-// Película agregada a favoritos
+
 class AddedToFavoritesSuccess extends MovieState {}
 
-// Película eliminada de favoritos
+
 class RemovedFromFavoritesSuccess extends MovieState {}
 
-// Películas trending cargadas
+
 class TrendingMoviesSuccess extends MovieState {
   final List<MovieModel> movies;
   
@@ -84,7 +84,7 @@ class TrendingMoviesSuccess extends MovieState {
   List<Object?> get props => [movies];
 }
 
-// Películas mejor valoradas cargadas
+
 class TopRatedMoviesSuccess extends MovieState {
   final List<MovieModel> movies;
   
@@ -94,7 +94,7 @@ class TopRatedMoviesSuccess extends MovieState {
   List<Object?> get props => [movies];
 }
 
-// Películas por género cargadas
+
 class MoviesByGenreSuccess extends MovieState {
   final List<MovieModel> movies;
   final String genreName;

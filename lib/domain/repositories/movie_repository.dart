@@ -2,7 +2,7 @@ import '../../data/models/movie_model.dart';
 import '../../data/services/tmdb_service.dart';
 import '../../data/services/ai_service.dart';
 
-// Repositorio que combina servicios TMDB y AI
+
 class MovieRepository {
   final TmdbService _tmdbService;
   final AiService _aiService;
@@ -13,7 +13,7 @@ class MovieRepository {
   })  : _tmdbService = tmdbService ?? TmdbService(),
         _aiService = aiService ?? AiService();
   
-  // Buscar películas con análisis de IA
+  
   Future<List<MovieModel>> searchMovies(String query) async {
     try {
       return await _tmdbService.searchMovies(query);
@@ -22,14 +22,14 @@ class MovieRepository {
     }
   }
   
-  // Obtener detalles completos con resumen generado por IA
+  
   Future<Map<String, dynamic>> getMovieDetailsWithAiSummary(int movieId) async {
     try {
       final movie = await _tmdbService.getMovieDetails(movieId);
       final similar = await _tmdbService.getSimilarMovies(movieId);
       final recommendations = await _tmdbService.getRecommendations(movieId);
       
-      // Generar resumen con IA
+      
       String aiSummary = '';
       try {
         aiSummary = await _aiService.generateMovieSummary(
@@ -37,7 +37,7 @@ class MovieRepository {
           movie.overview,
         );
       } catch (e) {
-        // Si falla la IA, usar el overview original
+        
         aiSummary = movie.overview;
       }
       
@@ -52,15 +52,15 @@ class MovieRepository {
     }
   }
   
-  // Obtener recomendaciones personalizadas
+  
   Future<Map<String, dynamic>> getPersonalizedRecommendations(
     List<String> favoriteMovies,
   ) async {
     try {
-      // Obtener películas populares como base
+      
       final popularMovies = await _tmdbService.getPopularMovies();
       
-      // Generar recomendaciones con IA si hay favoritos
+      
       String aiRecommendations = '';
       if (favoriteMovies.isNotEmpty) {
         try {
@@ -81,7 +81,7 @@ class MovieRepository {
     }
   }
 
-  // Obtener películas trending/tendencias
+  
   Future<List<MovieModel>> getTrendingMovies() async {
     try {
       return await _tmdbService.getTrendingMovies();
@@ -90,7 +90,7 @@ class MovieRepository {
     }
   }
 
-  // Obtener películas mejor valoradas
+  
   Future<List<MovieModel>> getTopRatedMovies() async {
     try {
       return await _tmdbService.getTopRatedMovies();
@@ -99,7 +99,7 @@ class MovieRepository {
     }
   }
 
-  // Obtener películas por género
+  
   Future<List<MovieModel>> getMoviesByGenre(int genreId, {int page = 1}) async {
     try {
       return await _tmdbService.getMoviesByGenre(genreId, page: page);

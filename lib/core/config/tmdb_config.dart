@@ -33,7 +33,7 @@ class TmdbConfig {
       _apiKey = (data['apiKey'] as String?)?.trim() ?? _apiKey;
       _bearerToken = (data['bearerToken'] as String?)?.trim() ?? _bearerToken;
     } catch (_) {
-      // Ignorar si no existe
+      
     }
   }
 
