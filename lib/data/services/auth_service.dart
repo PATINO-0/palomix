@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Servicio de autenticación separado para reducir tamaño del archivo principal
 class AuthService {
   final SupabaseClient _client = Supabase.instance.client;
 
