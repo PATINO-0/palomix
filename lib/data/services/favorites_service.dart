@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/favorite_model.dart';
 
-// Servicio de favoritos separado para mantener código enfocado y pequeño
 class FavoritesService {
   final SupabaseClient _client = Supabase.instance.client;
   static const _uuid = Uuid();
