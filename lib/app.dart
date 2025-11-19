@@ -13,7 +13,7 @@ class PalomixApp extends StatelessWidget {
       title: 'Palomix',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.buildTheme(),
-      home: const SplashScreen(), // 👈 ahora arranca en la splash
+      home: const SplashScreen(), 
     );
   }
 }
