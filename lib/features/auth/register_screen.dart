@@ -35,27 +35,93 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       try {
-        await SupabaseService.instance
-            .signUp(emailCtrl.text.trim(), passCtrl.text.trim());
-        
+        // Registrar usuario sin intentar hacer login automático
+        final response = await Supabase.instance.client.auth.signUp(
+          email: emailCtrl.text.trim(),
+          password: passCtrl.text.trim(),
+        );
+
         if (!mounted) return;
+
+        // Verificar si el registro fue exitoso
+        if (response.user != null) {
+          // Cerrar sesión inmediatamente para evitar auto-login
+          await Supabase.instance.client.auth.signOut();
+
+          if (!mounted) return;
+
+          // Mostrar notificación de éxito
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: const [
+                  Icon(Icons.check_circle_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '¡Registro exitoso! Revisa tu correo para confirmar tu cuenta y luego inicia sesión.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+
+          // Esperar un momento y regresar al login
+          await Future.delayed(const Duration(milliseconds: 800));
+          if (!mounted) return;
+          Navigator.of(context).pop();
+        } else {
+          throw Exception('No se pudo crear la cuenta');
+        }
+      } on AuthException catch (e) {
+        if (!mounted) return;
+
+        // Manejo específico de errores de Supabase
+        String errorMessage;
         
-        // Mostrar notificación de éxito flotante y animada
+        switch (e.statusCode) {
+          case '422':
+          case 'invalid_credentials':
+            errorMessage = 'Credenciales inválidas. Verifica tu correo y contraseña.';
+            break;
+          case 'email_exists':
+          case 'user_already_exists':
+            errorMessage = 'Este correo ya está registrado. Intenta iniciar sesión.';
+            break;
+          case 'weak_password':
+            errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+            break;
+          case 'invalid_email':
+            errorMessage = 'El formato del correo electrónico no es válido.';
+            break;
+          case 'rate_limit':
+            errorMessage = 'Demasiados intentos. Espera unos minutos e intenta de nuevo.';
+            break;
+          default:
+            errorMessage = e.message.isNotEmpty 
+                ? e.message 
+                : 'Error al crear la cuenta. Intenta de nuevo.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_outline, color: Colors.white),
+                const Icon(Icons.error_outline, color: Colors.white),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    '¡Cuenta creada exitosamente! Revisa tu correo para confirmar.',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ),
+                Expanded(child: Text(errorMessage)),
               ],
             ),
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -64,21 +130,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
             duration: const Duration(seconds: 4),
           ),
         );
+      } catch (e) {
+        if (!mounted) return;
 
-        // Esperar un momento y regresar al login
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (!mounted) return;
-        Navigator.of(context).pop();
+        // Manejo de errores generales
+        String errorMessage = 'Ocurrió un error inesperado. Verifica tu conexión e intenta de nuevo.';
         
-      } on AuthException catch (e) {
-        if (!mounted) return;
+        if (e.toString().contains('network')) {
+          errorMessage = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+        } else if (e.toString().contains('timeout')) {
+          errorMessage = 'La solicitud tardó demasiado. Intenta de nuevo.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 const Icon(Icons.error_outline, color: Colors.white),
                 const SizedBox(width: 12),
-                Expanded(child: Text(e.message)),
+                Expanded(child: Text(errorMessage)),
               ],
             ),
             backgroundColor: const Color(0xFFEF4444),
@@ -87,25 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             margin: const EdgeInsets.all(16),
-          ),
-        );
-      } catch (_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                const Expanded(child: Text('Ocurrió un error. Intenta de nuevo.')),
-              ],
-            ),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
           ),
         );
       } finally {
