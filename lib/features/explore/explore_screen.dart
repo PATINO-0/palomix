@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/api_constants.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
 import '../../data/models/movie_model.dart';
 import '../../data/services/tmdb_service.dart';
+import '../movie_detail/movie_detail_screen.dart';
+import '../../core/models/movie.dart';  
+
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -75,6 +79,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  void _openDetails(MovieModel movie) {
+    final posterUrl = movie.fullPosterUrl;
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, animation, __) => FadeTransition(
+          opacity: animation,
+          child: MovieDetailScreen(
+            tmdbId: movie.id,
+            initialTitle: movie.title,
+            initialPosterUrl: posterUrl,
+            baseMovie: Movie(
+              id: movie.id,
+              title: movie.title,
+              overview: movie.overview,
+              posterPath: movie.posterPath,
+              releaseDate: movie.releaseDate,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final posterHeight = 220.0;
@@ -141,37 +170,47 @@ class _ExploreScreenState extends State<ExploreScreen> {
               final movie = _movies[i];
               final posterUrl = movie.fullPosterUrl;
 
-              return Column(
-                children: [
-                  SizedBox(
-                    height: posterHeight,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: posterUrl != null
-                          ? Image.network(
-                              posterUrl,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              color: Colors.grey.shade900,
-                              child: const Center(
-                                child: Icon(
-                                  Icons.movie_filter_outlined,
-                                  color: Colors.white54,
+              return GestureDetector(
+                onTap: () => _openDetails(movie),
+                child: Column(
+                  children: [
+                    Hero(
+                      tag: 'poster-${movie.id}',
+                      child: SizedBox(
+                        height: posterHeight,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: posterUrl != null
+                              ? Image.network(
+                                  posterUrl,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  color: Colors.grey.shade900,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.movie_filter_outlined,
+                                      color: Colors.white54,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    movie.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              );
+                    const SizedBox(height: 4),
+                    Text(
+                      movie.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 250.ms).scaleXY(
+                    begin: 0.9,
+                    end: 1.0,
+                    curve: Curves.easeOutBack,
+                  );
             },
           ),
         ),
