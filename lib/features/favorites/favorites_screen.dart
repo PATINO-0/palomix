@@ -1,10 +1,11 @@
+// lib/features/favorites/favorites_screen.dart
+
 import 'package:flutter/material.dart';
 
 import '../../core/config.dart';
 import '../../core/models/favorite_movie.dart';
 import '../../core/services/supabase_service.dart';
 import '../movie_detail/movie_detail_screen.dart';
-import '../../core/models/movie.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -57,16 +58,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         pageBuilder: (_, animation, __) => FadeTransition(
           opacity: animation,
           child: MovieDetailScreen(
-            tmdbId: fav.movie.id,
-            initialTitle: fav.movie.title,
-            initialPosterUrl: posterUrl,
-            baseMovie: Movie(
-              id: fav.movie.id,
-              title: fav.movie.title,
-              overview: fav.movie.overview,
-              posterPath: fav.movie.posterPath,
-              releaseDate: fav.movie.releaseDate,
-            ),
+            movie: fav.movie,        // ya es un Movie simple
+            fullPosterUrl: posterUrl,
           ),
         ),
       ),

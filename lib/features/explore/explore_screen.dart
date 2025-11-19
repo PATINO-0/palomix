@@ -1,11 +1,12 @@
+// lib/features/explore/explore_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../data/models/movie_model.dart';
+import '../../core/models/movie.dart';          // 👈 modelo simple
+import '../../data/models/movie_model.dart';   // TMDb model
 import '../../data/services/tmdb_service.dart';
 import '../movie_detail/movie_detail_screen.dart';
-import '../../core/models/movie.dart';  
-
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -82,22 +83,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void _openDetails(MovieModel movie) {
     final posterUrl = movie.fullPosterUrl;
 
+    // Adaptamos MovieModel -> Movie simple
+    final coreMovie = Movie(
+      id: movie.id,
+      title: movie.title,
+      overview: movie.overview,
+      posterPath: movie.posterPath,
+      releaseDate: movie.releaseDate,
+    );
+
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (_, animation, __) => FadeTransition(
           opacity: animation,
           child: MovieDetailScreen(
-            tmdbId: movie.id,
-            initialTitle: movie.title,
-            initialPosterUrl: posterUrl,
-            baseMovie: Movie(
-              id: movie.id,
-              title: movie.title,
-              overview: movie.overview,
-              posterPath: movie.posterPath,
-              releaseDate: movie.releaseDate,
-            ),
+            movie: coreMovie,
+            fullPosterUrl: posterUrl,
           ),
         ),
       ),
