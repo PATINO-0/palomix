@@ -19,7 +19,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final TextEditingController _inputCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
-  final List<ChatMessage> _messages = []; 
+  final List<ChatMessage> _messages = [];
   final _tmdb = TmdbService();
 
   List<MovieModel> _searchResults = [];
@@ -28,8 +28,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   MovieModel? _selectedMovie;
   String? _movieSummary;
   List<MovieModel> _recommendations = [];
-  
+  bool _isFavorite = false;
+
   late AnimationController _fabAnimationController;
+  late AnimationController _favoriteAnimationController;
   bool _showScrollToBottom = false;
 
   @override
@@ -38,6 +40,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _fabAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
+    );
+    _favoriteAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
     );
     _scrollCtrl.addListener(_onScroll);
     _addSystemWelcome();
@@ -48,6 +54,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _inputCtrl.dispose();
     _scrollCtrl.dispose();
     _fabAnimationController.dispose();
+    _favoriteAnimationController.dispose();
     super.dispose();
   }
 
@@ -95,6 +102,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _selectedMovie = null;
       _movieSummary = null;
       _recommendations = [];
+      _isFavorite = false;
     });
 
     try {
@@ -102,7 +110,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       setState(() {
         _searchResults = movies;
       });
-      
+
       if (movies.isEmpty) {
         _messages.add(
           ChatMessage(
@@ -128,10 +136,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         ChatMessage(
           id: 'error-${DateTime.now().microsecondsSinceEpoch}',
           sender: ChatSender.assistant,
-          text: '❌ Ups, hubo un problema buscando películas. Intenta de nuevo.',
+          text: '❌ Ups, hubo un problema buscando películas. Verifica tu conexión.',
           timestamp: DateTime.now(),
         ),
       );
+      _showErrorNotification('Error de búsqueda', 'No se pudo conectar con el servidor.');
     } finally {
       setState(() {
         _loadingMovies = false;
@@ -146,7 +155,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _loadingSummary = true;
       _movieSummary = null;
       _recommendations = [];
+      _isFavorite = false;
     });
+
+    // Verificar si ya está en favoritos
+    await _checkIfFavorite(movie.id);
 
     try {
       final details = await _tmdb.getMovieDetails(movie.id);
@@ -173,11 +186,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       setState(() {
         _movieSummary = '❌ No pude generar el resumen en este momento.';
       });
+      _showErrorNotification('Error de resumen', 'No se pudo generar el resumen de la película.');
     } finally {
       setState(() {
         _loadingSummary = false;
       });
       _scrollToBottom();
+    }
+  }
+
+  Future<void> _checkIfFavorite(int movieId) async {
+    try {
+      final favorites = await SupabaseService.instance.getFavorites();
+      setState(() {
+        _isFavorite = favorites.any((fav) => fav.id == movieId);
+      });
+    } catch (e) {
+      // Si hay error al verificar, asumimos que no está en favoritos
+      setState(() {
+        _isFavorite = false;
+      });
     }
   }
 
@@ -191,53 +219,214 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _addToFavorites() async {
+  Future<void> _toggleFavorite() async {
     final movie = _selectedMovie;
     if (movie == null) return;
 
-    try {
-      final coreMovie = _toCoreMovie(movie);
-      await SupabaseService.instance.addFavorite(coreMovie);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.check_circle_outline, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(child: Text('Película añadida a favoritos 🍿')),
-            ],
-          ),
-          backgroundColor: const Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.error_outline, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(child: Text('No se pudo guardar la película.')),
-            ],
-          ),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+    if (_isFavorite) {
+      // Remover de favoritos
+      try {
+        await SupabaseService.instance.removeFavorite(movie.id);
+        setState(() {
+          _isFavorite = false;
+        });
+        _favoriteAnimationController.reverse();
+        _showSuccessNotification(
+          'Eliminado de favoritos',
+          '"${movie.title}" se eliminó de tu lista 💔',
+        );
+      } catch (e) {
+        _showErrorNotification(
+          'Error al eliminar',
+          'No se pudo eliminar la película de favoritos.',
+        );
+      }
+    } else {
+      // Añadir a favoritos
+      try {
+        final coreMovie = _toCoreMovie(movie);
+        await SupabaseService.instance.addFavorite(coreMovie);
+        setState(() {
+          _isFavorite = true;
+        });
+        _favoriteAnimationController.forward();
+        _showSuccessNotification(
+          'Añadido a favoritos',
+          '"${movie.title}" se guardó en tu lista 🍿',
+        );
+      } on Exception catch (e) {
+        // Verificar si el error es por duplicado
+        final errorMsg = e.toString().toLowerCase();
+        if (errorMsg.contains('duplicate') || 
+            errorMsg.contains('unique') || 
+            errorMsg.contains('already exists')) {
+          setState(() {
+            _isFavorite = true;
+          });
+          _showWarningNotification(
+            'Ya está en favoritos',
+            '"${movie.title}" ya estaba guardada en tu lista 🎬',
+          );
+        } else {
+          _showErrorNotification(
+            'Error al guardar',
+            'No se pudo añadir la película a favoritos.',
+          );
+        }
+      } catch (e) {
+        _showErrorNotification(
+          'Error al guardar',
+          'Ocurrió un error inesperado. Intenta de nuevo.',
+        );
+      }
     }
+  }
+
+  void _showSuccessNotification(String title, String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        elevation: 8,
+      ),
+    );
+  }
+
+  void _showWarningNotification(String title, String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.info_outline, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFF59E0B),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        elevation: 8,
+      ),
+    );
+  }
+
+  void _showErrorNotification(String title, String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFEF4444),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        elevation: 8,
+      ),
+    );
   }
 
   void _scrollToBottom() {
@@ -919,42 +1108,137 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: _addToFavorites,
-                icon: const Icon(Icons.favorite_border, color: Color(0xFFDC2626)),
-                tooltip: 'Añadir a favoritos',
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.1),
+              GestureDetector(
+                onTap: _toggleFavorite,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: _isFavorite
+                        ? const LinearGradient(
+                            colors: [
+                              Color(0xFFDC2626),
+                              Colors.orange,
+                            ],
+                          )
+                        : LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.1),
+                              Colors.white.withOpacity(0.05),
+                            ],
+                          ),
+                    border: Border.all(
+                      color: _isFavorite
+                          ? Colors.transparent
+                          : Colors.white.withOpacity(0.2),
+                      width: 1.5,
+                    ),
+                    boxShadow: _isFavorite
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFFDC2626).withOpacity(0.5),
+                              blurRadius: 15,
+                              spreadRadius: 3,
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Icon(
+                    _isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorite
+                        ? Colors.white
+                        : const Color(0xFFDC2626),
+                    size: 24,
+                  ),
                 ),
-              ),
+              )
+                  .animate(
+                    onPlay: (controller) {
+                      if (_isFavorite) {
+                        controller.forward();
+                      } else {
+                        controller.reverse();
+                      }
+                    },
+                    controller: _favoriteAnimationController,
+                  )
+                  .scale(
+                    begin: const Offset(0.8, 0.8),
+                    end: const Offset(1.0, 1.0),
+                    curve: Curves.elasticOut,
+                  )
+                  .then()
+                  .shake(hz: 2, duration: 300.ms),
             ],
           ),
           const SizedBox(height: 16),
           if (_loadingSummary)
-            const LinearProgressIndicator(
-              color: Color(0xFFDC2626),
-              backgroundColor: Colors.white24,
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFDC2626).withOpacity(0.3),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: const LinearProgressIndicator(
+                  minHeight: 6,
+                  color: Color(0xFFDC2626),
+                  backgroundColor: Colors.white24,
+                ),
+              ),
             ),
           if (_movieSummary != null) ...[
             const SizedBox(height: 12),
-            Text(
-              _movieSummary!,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 15,
-                height: 1.5,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.05),
+                    Colors.white.withOpacity(0.02),
+                  ],
+                ),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                _movieSummary!,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  height: 1.5,
+                ),
               ),
             ),
           ],
           if (_recommendations.isNotEmpty) ...[
             const SizedBox(height: 24),
-            const Text(
-              'Sugerencias similares:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+            Row(
+              children: const [
+                Icon(
+                  Icons.recommend_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 22,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Sugerencias similares:',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -978,86 +1262,124 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   Widget _buildEnhancedInputBar() {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(28),
         gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withOpacity(0.15),
+            Colors.white.withOpacity(0.08),
           ],
+        ),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 20,
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 25,
             spreadRadius: 5,
             offset: const Offset(0, -5),
+          ),
+          BoxShadow(
+            color: const Color(0xFFDC2626).withOpacity(0.1),
+            blurRadius: 15,
+            spreadRadius: 2,
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _inputCtrl,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Buscar película o serie...',
-                    hintStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
-                      fontSize: 14,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  onSubmitted: (_) => _sendQuery(),
-                ),
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.05),
+                  Colors.white.withOpacity(0.02),
+                ],
               ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: _sendQuery,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
                       colors: [
-                        Color(0xFFDC2626),
-                        Colors.orange,
+                        const Color(0xFFDC2626).withOpacity(0.2),
+                        Colors.orange.withOpacity(0.2),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFDC2626).withOpacity(0.4),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      ),
-                    ],
                   ),
                   child: const Icon(
-                    Icons.send_rounded,
-                    color: Colors.white,
-                    size: 20,
+                    Icons.search_rounded,
+                    color: Color(0xFFDC2626),
+                    size: 22,
                   ),
                 ),
-              )
-                  .animate(onPlay: (controller) => controller.repeat())
-                  .shimmer(
-                      duration: 2000.ms,
-                      color: Colors.white.withOpacity(0.3)),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: TextField(
+                    controller: _inputCtrl,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar película o serie...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onSubmitted: (_) => _sendQuery(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _sendQuery,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFDC2626),
+                          Colors.orange,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFDC2626).withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                )
+                    .animate(onPlay: (controller) => controller.repeat())
+                    .shimmer(
+                        duration: 2500.ms,
+                        color: Colors.white.withOpacity(0.4))
+                    .then(delay: 500.ms),
+              ],
+            ),
           ),
         ),
       ),
