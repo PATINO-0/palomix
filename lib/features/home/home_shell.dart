@@ -19,7 +19,6 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   int _index = 0;
   late PageController _pageController;
-  late AnimationController _fabAnimationController;
 
   final _pages = const [
     ChatScreen(),
@@ -28,30 +27,24 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   ];
 
   final _navItems = const [
-    {'icon': Icons.chat_bubble_rounded, 'label': 'Chat', 'emoji': '💬'},
-    {'icon': Icons.explore_rounded, 'label': 'Explorar', 'emoji': '🎬'},
-    {'icon': Icons.favorite_rounded, 'label': 'Favoritos', 'emoji': '❤️'},
+    {'icon': Icons.chat_bubble_rounded, 'label': 'Chat'},
+    {'icon': Icons.explore_rounded, 'label': 'Explorar'},
+    {'icon': Icons.favorite_rounded, 'label': 'Favoritos'},
   ];
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _index);
-    _fabAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _fabAnimationController.dispose();
     super.dispose();
   }
 
   Future<void> _logout() async {
-    // Mostrar diálogo de confirmación
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => _buildLogoutDialog(),
@@ -69,8 +62,26 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al cerrar sesión: $e'),
+            content: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.error_outline,
+                      color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Error al cerrar sesión: $e')),
+              ],
+            ),
             backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -130,7 +141,9 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                       ),
                     )
                         .animate()
-                        .scale(duration: 400.ms, curve: Curves.elasticOut),
+                        .scale(duration: 400.ms, curve: Curves.elasticOut)
+                        .then()
+                        .shake(hz: 2, duration: 500.ms),
                     const SizedBox(height: 20),
                     const Text(
                       '¿Cerrar sesión?',
@@ -193,8 +206,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        const Color(0xFFDC2626).withOpacity(0.4),
+                                    color: const Color(0xFFDC2626)
+                                        .withOpacity(0.4),
                                     blurRadius: 15,
                                     spreadRadius: 2,
                                   ),
@@ -242,121 +255,84 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: Stack(
-        children: [
-          // Páginas
-          PageView(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _index = index;
-              });
-            },
-            children: _pages,
-          ),
-          
-          // Botón de logout flotante
-          SafeArea(
-            child: Positioned(
-              top: 16,
-              right: 16,
-              child: GestureDetector(
-                onTap: _logout,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white.withOpacity(0.15),
-                        Colors.white.withOpacity(0.08),
-                      ],
-                    ),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: const Icon(
-                        Icons.logout_rounded,
-                        color: Color(0xFFDC2626),
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ),
-              )
-                  .animate()
-                  .fadeIn(delay: 400.ms, duration: 600.ms)
-                  .scale(
-                      begin: const Offset(0, 0), curve: Curves.elasticOut),
-            ),
-          ),
-        ],
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _index = index;
+          });
+        },
+        children: _pages,
       ),
       bottomNavigationBar: _buildModernBottomNav(),
     );
   }
 
   Widget _buildModernBottomNav() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.15),
-            Colors.white.withOpacity(0.08),
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        constraints: const BoxConstraints(
+          minHeight: 72,
+          maxHeight: 80,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withOpacity(0.15),
+              Colors.white.withOpacity(0.08),
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 25,
+              spreadRadius: 5,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: const Color(0xFFDC2626).withOpacity(0.1),
+              blurRadius: 15,
+              spreadRadius: 2,
+            ),
           ],
         ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 25,
-            spreadRadius: 5,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: const Color(0xFFDC2626).withOpacity(0.1),
-            blurRadius: 15,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(
-              _navItems.length,
-              (index) => _buildNavItem(index),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Items de navegación principales
+                  ...List.generate(
+                    _navItems.length,
+                    (index) => Expanded(
+                      child: _buildNavItem(index),
+                    ),
+                  ),
+                  
+                  // Botón de logout más compacto
+                  _buildCompactLogoutButton(),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    )
-        .animate()
-        .fadeIn(delay: 200.ms, duration: 600.ms)
-        .slideY(begin: 0.5, end: 0, curve: Curves.easeOut);
+      )
+          .animate()
+          .fadeIn(delay: 200.ms, duration: 600.ms)
+          .slideY(begin: 0.5, end: 0, curve: Curves.easeOut),
+    );
   }
 
   Widget _buildNavItem(int index) {
@@ -368,10 +344,8 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 20 : 16,
-          vertical: 12,
-        ),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           gradient: isActive
               ? const LinearGradient(
@@ -392,26 +366,27 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                 ]
               : [],
         ),
-        child: Row(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               item['icon'] as IconData,
               color: isActive ? Colors.white : Colors.white.withOpacity(0.6),
-              size: isActive ? 26 : 24,
+              size: isActive ? 24 : 22,
             ),
-            if (isActive) ...[
-              const SizedBox(width: 8),
-              Text(
-                item['label'] as String,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
+            const SizedBox(height: 3),
+            Text(
+              item['label'] as String,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.white.withOpacity(0.6),
+                fontSize: isActive ? 11 : 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                letterSpacing: 0.2,
               ),
-            ],
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       )
@@ -428,5 +403,34 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
             color: Colors.white.withOpacity(0.3),
           ),
     );
+  }
+
+  Widget _buildCompactLogoutButton() {
+    return GestureDetector(
+      onTap: _logout,
+      child: Container(
+        margin: const EdgeInsets.only(left: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0xFFDC2626).withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Icon(
+          Icons.logout_rounded,
+          color: const Color(0xFFDC2626).withOpacity(0.9),
+          size: 22,
+        ),
+      ),
+    )
+        .animate(onPlay: (controller) => controller.repeat())
+        .shimmer(
+          delay: 2000.ms,
+          duration: 2000.ms,
+          color: Colors.white.withOpacity(0.1),
+        );
   }
 }
