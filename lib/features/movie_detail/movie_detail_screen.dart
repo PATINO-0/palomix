@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/models/movie.dart';
 import '../../core/services/groq_service.dart';
 import '../../core/services/supabase_service.dart';
+import '../../data/models/movie_model.dart';
+import '../../data/services/tmdb_service.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final Movie movie;
@@ -27,6 +29,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   bool _savingFavorite = false;
   bool _isFavorite = false;
   late AnimationController _favoriteAnimationController;
+  final _tmdb = TmdbService();
+  List<CastMember> _cast = [];
+  bool _loadingCast = true;
+  String? _castError;
 
   @override
   void initState() {
@@ -37,6 +43,33 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     );
     _generateSummary();
     _checkIfFavorite();
+    _loadCast();
+  }
+
+  Future<void> _loadCast() async {
+    setState(() {
+      _loadingCast = true;
+      _castError = null;
+    });
+
+    try {
+      final detailedMovie = await _tmdb.getMovieDetails(widget.movie.id);
+      if (!mounted) return;
+      setState(() {
+        _cast = detailedMovie.cast ?? [];
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _castError = 'No pudimos cargar el elenco en este momento.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingCast = false;
+        });
+      }
+    }
   }
 
   @override
@@ -56,9 +89,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
           }
         });
       }
-    } catch (e) {
-      // Ignorar error silenciosamente
-    }
+    } catch (e) {}
   }
 
   Future<void> _generateSummary() async {
@@ -77,7 +108,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
       if (!mounted) return;
       setState(() {
         _summary =
-            'No pude generar el resumen en este momento. Intenta de nuevo más tarde.';
+            'No pude generar el resumen en este momento. Intenta de nuevo mas tarde.';
       });
     } finally {
       if (!mounted) return;
@@ -101,10 +132,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
           _isFavorite = false;
         });
         _favoriteAnimationController.reverse();
-        _showSuccessNotification('Eliminado de favoritos', '💔');
+        _showSuccessNotification('Eliminado de favoritos', '💔',
+            isNegative: true);
       } catch (e) {
         if (!mounted) return;
-        _showErrorNotification('No se pudo eliminar la película');
+        _showErrorNotification('No se pudo eliminar la pelicula');
       } finally {
         if (mounted) {
           setState(() {
@@ -113,7 +145,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
         }
       }
     } else {
-      // Añadir a favoritos
+      // Add to favorites
       setState(() {
         _savingFavorite = true;
       });
@@ -135,9 +167,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
           setState(() {
             _isFavorite = true;
           });
-          _showWarningNotification('Ya está en favoritos');
+          _showWarningNotification('Ya esta en favoritos');
         } else {
-          _showErrorNotification('No se pudo guardar la película');
+          _showErrorNotification('No se pudo guardar la pelicula');
         }
       } finally {
         if (mounted) {
@@ -149,7 +181,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
     }
   }
 
-  void _showSuccessNotification(String message, String emoji) {
+  void _showSuccessNotification(String message, String emoji,
+      {bool isNegative = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -167,7 +200,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor:
+            isNegative ? const Color(0xFFEF4444) : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: const EdgeInsets.all(16),
@@ -188,7 +222,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.info_outline, color: Colors.white, size: 20),
+              child:
+                  const Icon(Icons.info_outline, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(child: Text(message)),
@@ -215,8 +250,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child:
-                  const Icon(Icons.error_outline, color: Colors.white, size: 20),
+              child: const Icon(Icons.error_outline,
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(child: Text(message)),
@@ -274,6 +309,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                             _buildActionButtons(),
                             const SizedBox(height: 24),
                             _buildSummaryCard(),
+                            const SizedBox(height: 24),
+                            _buildCastSection(),
                             const SizedBox(height: 80),
                           ],
                         ),
@@ -448,10 +485,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
           ),
         ),
       ),
-    )
-        .animate()
-        .fadeIn(duration: 800.ms)
-        .scale(
+    ).animate().fadeIn(duration: 800.ms).scale(
           begin: const Offset(0.8, 0.8),
           end: const Offset(1.0, 1.0),
           curve: Curves.easeOut,
@@ -486,9 +520,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                   color: Color(0xFFDC2626),
                 );
               },
-            )
-                .animate(onPlay: (controller) => controller.repeat())
-                .shimmer(duration: 2000.ms, color: Colors.white.withOpacity(0.1)),
+            ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+                duration: 2000.ms, color: Colors.white.withOpacity(0.1)),
             const SizedBox(height: 16),
             Text(
               'PALOMIX',
@@ -506,9 +539,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
   }
 
   Widget _buildInfoCard(Movie m) {
-    // ✅ Verificación de null para overview
+    // Ensure overview exists before rendering
     final hasOverview = m.overview != null && m.overview!.isNotEmpty;
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -553,7 +586,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                 ),
                 const SizedBox(height: 12),
               ],
-              // ✅ Verificación de null corregida
+              // Overview section only when there is overview text
               if (hasOverview) ...[
                 const Divider(color: Colors.white24),
                 const SizedBox(height: 12),
@@ -574,7 +607,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  m.overview!, // ✅ Ya verificamos que no es null
+                  m.overview!, 
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 14,
@@ -722,13 +755,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
               size: 24,
             ),
           ),
-        )
-            .animate(onPlay: (controller) {
-              if (_loadingSummary) {
-                controller.repeat();
-              }
-            })
-            .rotate(duration: 1000.ms),
+        ).animate(onPlay: (controller) {
+          if (_loadingSummary) {
+            controller.repeat();
+          }
+        }).rotate(duration: 1000.ms),
       ],
     )
         .animate()
@@ -822,7 +853,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Analizando película con IA...',
+                          'Analizando pelicula con IA...',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.8),
                             fontSize: 14,
@@ -838,8 +869,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
                     .fadeOut(duration: 1000.ms)
               else
                 Text(
-                  _summary ??
-                      'No pude generar el resumen. Intenta de nuevo.',
+                  _summary ?? 'No pude generar el resumen. Intenta de nuevo.',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 15,
@@ -854,5 +884,370 @@ class _MovieDetailScreenState extends State<MovieDetailScreen>
         .animate()
         .fadeIn(delay: 600.ms, duration: 800.ms)
         .slideY(begin: 0.3, end: 0);
+  }
+
+  Widget _buildCastSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFDC2626), Colors.orange],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.groups_rounded,
+                        color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Elenco y personajes',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Conoce al talento que da vida a esta historia',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_loadingCast)
+                    IconButton(
+                      onPressed: _loadCast,
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white70,
+                      ),
+                      tooltip: 'Actualizar elenco',
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: Colors.white24),
+              const SizedBox(height: 16),
+              _buildCastContent(),
+            ],
+          ),
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(delay: 700.ms, duration: 800.ms)
+        .slideY(begin: 0.3, end: 0);
+  }
+
+  Widget _buildCastContent() {
+    if (_loadingCast) {
+      return _buildCastLoadingState();
+    }
+
+    if (_castError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _castError!,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildRetryButton(),
+        ],
+      );
+    }
+
+    if (_cast.isEmpty) {
+      return Text(
+        'No hay informacion de elenco disponible para este titulo.',
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.7),
+          fontSize: 14,
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _cast.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final member = _cast[index];
+          return _buildCastCard(member)
+              .animate()
+              .fadeIn(delay: (index * 50).ms, duration: 400.ms)
+              .slideX(begin: 0.2, end: 0);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCastLoadingState() {
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 4,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, __) {
+          return Container(
+            width: 130,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: Colors.white.withOpacity(0.05),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(18)),
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.1),
+                          Colors.white.withOpacity(0.02),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  height: 50,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 10,
+                        width: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 8,
+                        width: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+                duration: 1500.ms,
+                color: Colors.white.withOpacity(0.2),
+              );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRetryButton() {
+    return GestureDetector(
+      onTap: _loadCast,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFDC2626), Colors.orange],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFDC2626).withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Intentar de nuevo',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCastCard(CastMember member) {
+    final profileUrl = member.fullProfileUrl;
+    return Container(
+      width: 140,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.02),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(18)),
+              child: profileUrl != null
+                  ? Image.network(
+                      profileUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      loadingBuilder: (context, child, event) {
+                        if (event == null) return child;
+                        return Container(
+                          color: Colors.white.withOpacity(0.05),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFDC2626)),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) =>
+                          _buildCastFallbackAvatar(member),
+                    )
+                  : _buildCastFallbackAvatar(member),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  member.character.isNotEmpty
+                      ? member.character
+                      : 'Personaje por anunciar',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCastFallbackAvatar(CastMember member) {
+    final initials = _extractInitials(member.name);
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFDC2626), Colors.orange],
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _extractInitials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'NA';
+    final parts =
+        trimmed.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) {
+      final end = trimmed.length >= 2 ? 2 : 1;
+      return trimmed.substring(0, end).toUpperCase();
+    }
+    final buffer = StringBuffer();
+    for (final part in parts.take(2)) {
+      buffer.write(part[0]);
+    }
+    return buffer.toString().toUpperCase();
   }
 }

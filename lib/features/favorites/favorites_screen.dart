@@ -46,7 +46,8 @@ class _FavoritesScreenState extends State<FavoritesScreen>
         _favorites = list;
       });
     } catch (e) {
-      _showErrorNotification('Error al cargar', 'No se pudieron cargar los favoritos.');
+      _showErrorNotification(
+          'Error al cargar', 'No se pudieron cargar los favoritos.');
     } finally {
       if (mounted) {
         setState(() {
@@ -68,7 +69,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
         await _loadFavorites();
         _showSuccessNotification(
           'Eliminado',
-          '"${fav.movie.title}" se eliminó de favoritos 💔',
+          '"${fav.movie.title}" se eliminó de favoritos.',
         );
       } catch (e) {
         _showErrorNotification(
@@ -197,8 +198,8 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        const Color(0xFFDC2626).withOpacity(0.4),
+                                    color: const Color(0xFFDC2626)
+                                        .withOpacity(0.4),
                                     blurRadius: 15,
                                     spreadRadius: 2,
                                   ),
@@ -250,40 +251,29 @@ class _FavoritesScreenState extends State<FavoritesScreen>
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.white,
               ),
-              child: const Icon(Icons.check_circle, color: Colors.white, size: 20),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    message,
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ],
+            const SizedBox(height: 4),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.white,
               ),
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor: const Color(0xFFEF4444),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -307,7 +297,8 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.error_outline, color: Colors.white, size: 20),
+              child: const Icon(Icons.error_outline,
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -469,10 +460,8 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                 ),
                 child: const Icon(Icons.favorite_rounded,
                     color: Colors.white, size: 28),
-              )
-                  .animate(onPlay: (controller) => controller.repeat())
-                  .shimmer(
-                      duration: 2000.ms, color: Colors.white.withOpacity(0.3)),
+              ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+                  duration: 2000.ms, color: Colors.white.withOpacity(0.3)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -793,21 +782,17 @@ class _FavoritesScreenState extends State<FavoritesScreen>
               .slideY(begin: 0.3, end: 0),
           const SizedBox(height: 12),
           Text(
-            'Explora películas en el chat\ny agrega tus favoritas',
+            'Explora películas en el chat y agrega tus favoritas',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
               color: Colors.white.withOpacity(0.7),
               height: 1.4,
             ),
-          )
-              .animate()
-              .fadeIn(delay: 500.ms, duration: 600.ms),
+          ).animate().fadeIn(delay: 500.ms, duration: 600.ms),
           const SizedBox(height: 32),
           GestureDetector(
-            onTap: () {
-              // Navegar al chat si es posible
-            },
+            onTap: () {},
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               decoration: BoxDecoration(

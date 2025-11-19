@@ -46,6 +46,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 600),
     );
     _scrollCtrl.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollButton());
     _addSystemWelcome();
   }
 
@@ -59,11 +60,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _onScroll() {
-    if (_scrollCtrl.offset > 300 && !_showScrollToBottom) {
-      setState(() => _showScrollToBottom = true);
+    _updateScrollButton();
+  }
+
+  void _updateScrollButton() {
+    if (!_scrollCtrl.hasClients) return;
+    const threshold = 80.0;
+    final hasContent = _scrollCtrl.position.maxScrollExtent > threshold;
+    final shouldShow = hasContent && _scrollCtrl.offset <= threshold;
+    if (shouldShow == _showScrollToBottom) return;
+    setState(() {
+      _showScrollToBottom = shouldShow;
+    });
+    if (shouldShow) {
       _fabAnimationController.forward();
-    } else if (_scrollCtrl.offset <= 300 && _showScrollToBottom) {
-      setState(() => _showScrollToBottom = false);
+    } else {
       _fabAnimationController.reverse();
     }
   }
@@ -116,7 +127,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           ChatMessage(
             id: 'noresults-${DateTime.now().microsecondsSinceEpoch}',
             sender: ChatSender.assistant,
-            text: '🎬 No encontré películas con ese nombre. Intenta con otro título.',
+            text:
+                '🎬 No encontré películas con ese nombre. Intenta con otro título.',
             timestamp: DateTime.now(),
           ),
         );
@@ -125,7 +137,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           ChatMessage(
             id: 'results-${DateTime.now().microsecondsSinceEpoch}',
             sender: ChatSender.assistant,
-            text: '✨ Encontré ${movies.length} resultado${movies.length > 1 ? 's' : ''}. '
+            text:
+                '✨ Encontré ${movies.length} resultado${movies.length > 1 ? 's' : ''}. '
                 'Toca la película que te interese para ver el resumen.',
             timestamp: DateTime.now(),
           ),
@@ -136,11 +149,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         ChatMessage(
           id: 'error-${DateTime.now().microsecondsSinceEpoch}',
           sender: ChatSender.assistant,
-          text: '❌ Ups, hubo un problema buscando películas. Verifica tu conexión.',
+          text:
+              '❌ Ups, hubo un problema buscando películas. Verifica tu conexión.',
           timestamp: DateTime.now(),
         ),
       );
-      _showErrorNotification('Error de búsqueda', 'No se pudo conectar con el servidor.');
+      _showErrorNotification(
+          'Error de búsqueda', 'No se pudo conectar con el servidor.');
     } finally {
       setState(() {
         _loadingMovies = false;
@@ -158,7 +173,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _isFavorite = false;
     });
 
-    // Verificar si ya está en favoritos
     await _checkIfFavorite(movie.id);
 
     try {
@@ -177,7 +191,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         ChatMessage(
           id: 'summary-${movie.id}',
           sender: ChatSender.assistant,
-          text: 'Aquí tienes un resumen sin spoilers fuertes de "${details.title}". '
+          text:
+              'Aquí tienes un resumen sin spoilers fuertes de "${details.title}". '
               'También te muestro recomendaciones similares más abajo.',
           timestamp: DateTime.now(),
         ),
@@ -186,7 +201,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       setState(() {
         _movieSummary = '❌ No pude generar el resumen en este momento.';
       });
-      _showErrorNotification('Error de resumen', 'No se pudo generar el resumen de la película.');
+      _showErrorNotification(
+          'Error de resumen', 'No se pudo generar el resumen de la película.');
     } finally {
       setState(() {
         _loadingSummary = false;
@@ -199,10 +215,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     try {
       final favorites = await SupabaseService.instance.getFavorites();
       setState(() {
-        _isFavorite = favorites.any((fav) => fav.id == movieId);
+        _isFavorite = favorites.any((fav) => fav.movie.id == movieId);
       });
     } catch (e) {
-      // Si hay error al verificar, asumimos que no está en favoritos
       setState(() {
         _isFavorite = false;
       });
@@ -224,7 +239,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     if (movie == null) return;
 
     if (_isFavorite) {
-      // Remover de favoritos
       try {
         await SupabaseService.instance.removeFavorite(movie.id);
         setState(() {
@@ -233,7 +247,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _favoriteAnimationController.reverse();
         _showSuccessNotification(
           'Eliminado de favoritos',
-          '"${movie.title}" se eliminó de tu lista 💔',
+          '"${movie.title}" se eliminó de tu lista.',
+          isNegative: true,
         );
       } catch (e) {
         _showErrorNotification(
@@ -242,7 +257,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         );
       }
     } else {
-      // Añadir a favoritos
       try {
         final coreMovie = _toCoreMovie(movie);
         await SupabaseService.instance.addFavorite(coreMovie);
@@ -252,20 +266,19 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _favoriteAnimationController.forward();
         _showSuccessNotification(
           'Añadido a favoritos',
-          '"${movie.title}" se guardó en tu lista 🍿',
+          '"${movie.title}" se guardó en tu lista.',
         );
       } on Exception catch (e) {
-        // Verificar si el error es por duplicado
         final errorMsg = e.toString().toLowerCase();
-        if (errorMsg.contains('duplicate') || 
-            errorMsg.contains('unique') || 
+        if (errorMsg.contains('duplicate') ||
+            errorMsg.contains('unique') ||
             errorMsg.contains('already exists')) {
           setState(() {
             _isFavorite = true;
           });
           _showWarningNotification(
             'Ya está en favoritos',
-            '"${movie.title}" ya estaba guardada en tu lista 🎬',
+            '"${movie.title}" ya estaba guardada en tu lista.',
           );
         } else {
           _showErrorNotification(
@@ -282,7 +295,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _showSuccessNotification(String title, String message) {
+  void _showSuccessNotification(String title, String message,
+      {bool isNegative = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -294,7 +308,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              child:
+                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -319,7 +334,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor:
+            isNegative ? const Color(0xFFEF4444) : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -343,7 +359,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.info_outline, color: Colors.white, size: 20),
+              child:
+                  const Icon(Icons.info_outline, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -392,7 +409,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.error_outline, color: Colors.white, size: 20),
+              child: const Icon(Icons.error_outline,
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -578,11 +596,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   color: Colors.white,
                   size: 28,
                 ),
-              )
-                  .animate(onPlay: (controller) => controller.repeat())
-                  .shimmer(
-                      duration: 2000.ms,
-                      color: Colors.white.withOpacity(0.3)),
+              ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+                  duration: 2000.ms, color: Colors.white.withOpacity(0.3)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -673,6 +688,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildChatMessages() {
+    final bottomSafeArea = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = bottomSafeArea;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -699,7 +717,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             ),
             child: ListView(
               controller: _scrollCtrl,
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
               physics: const BouncingScrollPhysics(),
               children: [
                 ..._messages.map(_buildMessageBubble),
@@ -707,7 +725,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 if (_loadingMovies) _buildLoadingIndicator(),
                 if (_searchResults.isNotEmpty) _buildSearchResults(),
                 if (_selectedMovie != null) _buildSelectedMovie(),
-                const SizedBox(height: 100),
               ],
             ),
           ),
@@ -1145,9 +1162,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   ),
                   child: Icon(
                     _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorite
-                        ? Colors.white
-                        : const Color(0xFFDC2626),
+                    color: _isFavorite ? Colors.white : const Color(0xFFDC2626),
                     size: 24,
                   ),
                 ),
@@ -1247,16 +1262,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 itemCount: _recommendations.length,
-                itemBuilder: (ctx, i) => _buildMovieCard(_recommendations[i], i),
+                itemBuilder: (ctx, i) =>
+                    _buildMovieCard(_recommendations[i], i),
               ),
             ),
           ],
         ],
       ),
-    )
-        .animate()
-        .fadeIn(duration: 600.ms)
-        .slideY(begin: 0.2, end: 0);
+    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0);
   }
 
   Widget _buildEnhancedInputBar() {
@@ -1375,8 +1388,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 )
                     .animate(onPlay: (controller) => controller.repeat())
                     .shimmer(
-                        duration: 2500.ms,
-                        color: Colors.white.withOpacity(0.4))
+                        duration: 2500.ms, color: Colors.white.withOpacity(0.4))
                     .then(delay: 500.ms),
               ],
             ),
@@ -1391,8 +1403,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   Widget _buildScrollToBottomButton() {
     return Positioned(
-      bottom: 100,
-      right: 24,
+      bottom: 220,
+      right: 20,
       child: GestureDetector(
         onTap: _scrollToBottom,
         child: Container(
@@ -1419,10 +1431,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             size: 28,
           ),
         ),
-      )
-          .animate()
-          .fadeIn(duration: 300.ms)
-          .scale(begin: const Offset(0.5, 0.5)),
+      ).animate().fadeIn(duration: 300.ms).scale(begin: const Offset(0.5, 0.5)),
     );
   }
 }
