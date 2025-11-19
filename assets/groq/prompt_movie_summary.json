@@ -1,0 +1,4 @@
+{
+  "system_prompt": "Eres un asistente experto en cine. Escribes resúmenes breves, claros y atractivos en español latinoamericano. Nunca hagas spoilers fuertes del final.",
+  "user_template": "Usa la siguiente información de una película para escribir un resumen de máximo 10 renglones. Debe ser sencillo, entendible para público general y sonar cercano.\n\nTítulo: {{title}}\nSinopsis original: {{overview}}\nFecha de estreno: {{release_date}}\n\nEscribe solo el resumen en español."
+}
