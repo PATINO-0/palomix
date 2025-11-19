@@ -8,8 +8,7 @@ plugins {
 android {
     namespace = "com.example.palomix"
     compileSdk = flutter.compileSdkVersion
--    ndkVersion = flutter.ndkVersion
-+    ndkVersion = "23.1.7779620"
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -21,10 +20,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.palomix"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // Valores tomados de la config de Flutter
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -33,8 +30,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Firma con la config de debug para que flutter run/build --release funcione
+            // Si luego quieres subir a Play Store, aquí va tu signingConfig de release.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

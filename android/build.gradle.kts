@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.Delete
+
 allprojects {
     repositories {
         google()
@@ -5,10 +7,13 @@ allprojects {
     }
 }
 
+// Equivalente a: rootProject.buildDir = "../build"
+layout.buildDirectory.set(file("../build"))
+
 // Usa el directorio de build del root y crea subcarpetas por módulo
 subprojects {
-    project.layout.buildDirectory.set(
-        rootProject.layout.buildDirectory.dir(project.name)
+    layout.buildDirectory.set(
+        rootProject.layout.buildDirectory.dir(name)
     )
 }
 
