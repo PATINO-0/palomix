@@ -34,4 +34,5 @@ flutter:
   assets:
     - assets/groq/prompt_movie_summary.json
     - assets/config/tmdb.json
+    - assets/palomix.png
     - .env
