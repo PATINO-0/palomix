@@ -1,15 +1,14 @@
 // lib/features/movie_detail/movie_detail_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../core/models/movie.dart';
 import '../../core/services/groq_service.dart';
 import '../../core/services/supabase_service.dart';
 
 class MovieDetailScreen extends StatefulWidget {
-  final Movie movie;           // modelo simple de Palomix
-  final String? fullPosterUrl; // URL completa de la imagen
+  final Movie movie;           // Modelo simple
+  final String? fullPosterUrl; // URL completa del póster (opcional)
 
   const MovieDetailScreen({
     super.key,
@@ -44,11 +43,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       setState(() {
         _summary = text;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _summary =
-            'No pude generar el resumen en este momento. Intenta de nuevo más tarde.';
+            'No pude generar el resumen en este momento. Intenta de nuevo más tarde.\n\nDetalle técnico: $e';
       });
     } finally {
       if (!mounted) return;
@@ -69,11 +68,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Película añadida a favoritos 🍿')),
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo guardar la película en favoritos.'),
+        SnackBar(
+          content: Text('No se pudo guardar la película en favoritos.\n$e'),
         ),
       );
     } finally {
@@ -88,69 +87,78 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Widget build(BuildContext context) {
     final m = widget.movie;
     final posterUrl = widget.fullPosterUrl;
-    final isWide = MediaQuery.of(context).size.width >= 700;
 
-    final header = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Hero(
-          tag: 'poster-${m.id}',
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: AspectRatio(
-              aspectRatio: 2 / 3,
-              child: posterUrl != null
-                  ? Image.network(
-                      posterUrl,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      color: Colors.grey.shade900,
-                      child: const Center(
-                        child: Icon(
-                          Icons.movie_outlined,
-                          color: Colors.white54,
-                          size: 40,
-                        ),
-                      ),
-                    ),
-            ),
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          m.title,
+          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(width: 16),
-        Expanded(
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                m.title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+              // PÓSTER
+              Center(
+                child: Column(
+                  children: [
+                    Hero(
+                      tag: 'poster-${m.id}',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: AspectRatio(
+                          aspectRatio: 2 / 3,
+                          child: posterUrl != null
+                              ? Image.network(
+                                  posterUrl,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  color: Colors.grey.shade900,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.movie_outlined,
+                                      color: Colors.white54,
+                                      size: 40,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
                     ),
-              ),
-              const SizedBox(height: 8),
-              if (m.releaseDate != null)
-                Text(
-                  'Estreno: ${m.releaseDate}',
-                  style: const TextStyle(color: Colors.white70),
+                    const SizedBox(height: 12),
+                    if (m.releaseDate != null)
+                      Text(
+                        'Estreno: ${m.releaseDate}',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                  ],
                 ),
-              const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 24),
+
+              // BOTONES
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _savingFavorite ? null : _saveAsFavorite,
-                    icon: _savingFavorite
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.favorite_border),
-                    label: const Text('Guardar favorito'),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _savingFavorite ? null : _saveAsFavorite,
+                      icon: _savingFavorite
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.favorite_border),
+                      label: const Text('Guardar favorito'),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
@@ -160,73 +168,42 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ],
-    );
 
-    final summarySection = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'Resumen generado por IA:',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white70,
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (_loadingSummary)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Estoy analizando la película, dame un momento...',
-                style: TextStyle(color: Colors.white70),
+              const SizedBox(height: 24),
+
+              const Text(
+                'Resumen generado por IA:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white70,
+                ),
               ),
-              SizedBox(height: 8),
-              LinearProgressIndicator(minHeight: 2),
+              const SizedBox(height: 8),
+
+              if (_loadingSummary)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Estoy analizando la película, dame un momento...',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    SizedBox(height: 8),
+                    LinearProgressIndicator(minHeight: 2),
+                  ],
+                )
+              else
+                Text(
+                  _summary ??
+                      'No pude generar el resumen en este momento. Intenta de nuevo más tarde.',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    height: 1.3,
+                  ),
+                ),
             ],
-          )
-        else
-          Text(
-            _summary ??
-                'No pude generar el resumen en este momento. Intenta de nuevo más tarde.',
-            style: const TextStyle(
-              color: Colors.white70,
-              height: 1.3,
-            ),
           ),
-      ],
-    );
-
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        header
-            .animate()
-            .fadeIn(duration: 300.ms)
-            .slideY(begin: 0.05, curve: Curves.easeOut),
-        summarySection
-            .animate()
-            .fadeIn(duration: 400.ms, delay: 100.ms)
-            .slideY(begin: 0.03),
-        const SizedBox(height: 24),
-      ],
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(m.title),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: isWide ? 32 : 16,
-          vertical: 24,
         ),
-        child: content,
       ),
     );
   }

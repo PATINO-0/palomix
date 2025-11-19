@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../core/models/movie.dart';          // 👈 modelo simple
-import '../../data/models/movie_model.dart';   // TMDb model
+import '../../core/models/movie.dart';          // Movie simple
+import '../../data/models/movie_model.dart';   // MovieModel de TMDb
 import '../../data/services/tmdb_service.dart';
 import '../movie_detail/movie_detail_screen.dart';
 
@@ -83,7 +83,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void _openDetails(MovieModel movie) {
     final posterUrl = movie.fullPosterUrl;
 
-    // Adaptamos MovieModel -> Movie simple
+    // Adaptamos al modelo simple Movie
     final coreMovie = Movie(
       id: movie.id,
       title: movie.title,
@@ -93,14 +93,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
 
     Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, animation, __) => FadeTransition(
-          opacity: animation,
-          child: MovieDetailScreen(
-            movie: coreMovie,
-            fullPosterUrl: posterUrl,
-          ),
+      MaterialPageRoute(
+        builder: (_) => MovieDetailScreen(
+          movie: coreMovie,
+          fullPosterUrl: posterUrl,
         ),
       ),
     );

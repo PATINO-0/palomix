@@ -53,14 +53,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         : null;
 
     Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, animation, __) => FadeTransition(
-          opacity: animation,
-          child: MovieDetailScreen(
-            movie: fav.movie,        // ya es un Movie simple
-            fullPosterUrl: posterUrl,
-          ),
+      MaterialPageRoute(
+        builder: (_) => MovieDetailScreen(
+          movie: fav.movie,
+          fullPosterUrl: posterUrl,
         ),
       ),
     );
